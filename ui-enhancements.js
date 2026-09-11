@@ -18,19 +18,28 @@
     .board-answer-reveal-ui{
       min-height:62px;margin-bottom:8px;padding:8px 10px 9px;border-radius:10px;
       display:grid;gap:5px;justify-items:center;overflow:hidden;color:#fff;
+      perspective:900px;
     }
     .board-answer-reveal-ui.answer-miss-ui{background:#b9434b;border:1px solid #d96067}
     .board-answer-reveal-ui.answer-ok-ui{background:#237f70;border:1px solid #36a593}
     .board-answer-label-ui{font-size:8px;font-weight:800;letter-spacing:.16em;color:rgba(255,255,255,.8)}
-    .board-answer-word-ui{display:flex;justify-content:center;gap:4px;font-size:clamp(19px,3.2vmin,27px);font-weight:800;letter-spacing:.04em}
+    .board-answer-word-ui{
+      display:flex;align-items:center;justify-content:center;gap:0;
+      font-size:clamp(21px,3.4vmin,29px);font-weight:800;letter-spacing:.015em;
+      line-height:1;font-kerning:normal;perspective:720px;transform-style:preserve-3d;
+    }
     .board-answer-word-ui>span{
-      min-width:.8em;opacity:0;transform:translateY(-10px) rotateX(-75deg);
-      animation:termuAnswerReveal 1s cubic-bezier(.2,.8,.2,1) forwards;
+      display:inline-block;min-width:0;margin:0;padding:0 .015em;
+      opacity:0;transform-origin:50% 50%;backface-visibility:hidden;
+      transform:rotateY(-96deg) translateZ(-24px) scale(.82);
+      text-shadow:0 3px 0 rgba(0,0,0,.18),0 8px 16px rgba(0,0,0,.24);
+      animation:termuAnswerReveal3D .9s cubic-bezier(.18,.76,.24,1) forwards;
+      will-change:transform,opacity,filter;
     }
 
     .round-result-ui{
       width:min(100%,470px);margin:10px auto 22px;display:grid;grid-template-columns:1fr 1.35fr;
-      gap:10px;align-items:stretch;animation:termuResultIn .42s ease 1.9s both;
+      gap:10px;align-items:stretch;animation:termuResultIn .42s ease 2.25s both;
     }
     .round-result-score-ui{
       min-height:68px;padding:9px 14px;border:1px solid rgba(255,255,255,.08);border-radius:11px;
@@ -45,10 +54,28 @@
     }
     .round-continue-ui:hover{filter:brightness(1.08)}
 
-    @keyframes termuAnswerReveal{
-      0%{opacity:0;transform:translateY(-10px) rotateX(-75deg)}
-      52%{opacity:.55}
-      100%{opacity:1;transform:translateY(0) rotateX(0)}
+    @keyframes termuAnswerReveal3D{
+      0%{
+        opacity:0;
+        filter:brightness(.55) blur(1px);
+        transform:rotateY(-96deg) translateZ(-24px) scale(.82);
+      }
+      52%{
+        opacity:1;
+        filter:brightness(1.12) blur(0);
+        transform:rotateY(13deg) translateZ(14px) scale(1.08);
+      }
+      72%{
+        transform:rotateY(-7deg) translateZ(7px) scale(1.035);
+      }
+      88%{
+        transform:rotateY(3deg) translateZ(2px) scale(1.01);
+      }
+      100%{
+        opacity:1;
+        filter:brightness(1) blur(0);
+        transform:rotateY(0) translateZ(0) scale(1);
+      }
     }
     @keyframes termuResultIn{
       from{opacity:0;transform:translateY(10px)}
@@ -59,8 +86,14 @@
       .mode-arrow-ui{width:29px;height:29px;font-size:26px}
       .brand-wrap{gap:2px!important}
       .board-answer-reveal-ui{min-height:50px;padding:6px 7px}
+      .board-answer-word-ui{font-size:22px}
       .round-result-ui{grid-template-columns:1fr;width:min(100%,350px);margin-bottom:15px}
       .round-result-score-ui,.round-continue-ui{min-height:54px}
+    }
+
+    @media(prefers-reduced-motion:reduce){
+      .board-answer-word-ui>span{animation-duration:.01ms!important;animation-delay:0!important}
+      .round-result-ui{animation-delay:0!important}
     }
   `;
   document.head.appendChild(style);
@@ -117,7 +150,7 @@
     keyboard?.classList.remove('hidden');
   }
 
-  function buildAnswer(board, card, index) {
+  function buildAnswer(board, card) {
     const letters = [...card.querySelectorAll('.answer-word span')].map(el => el.textContent.trim()).filter(Boolean);
     if (!letters.length) return;
 
@@ -135,7 +168,7 @@
     letters.forEach((letter, letterIndex) => {
       const span = document.createElement('span');
       span.textContent = letter;
-      span.style.animationDelay = `${letterIndex * 260 + index * 80}ms`;
+      span.style.animationDelay = `${letterIndex * 285}ms`;
       word.appendChild(span);
     });
     reveal.appendChild(word);
@@ -152,7 +185,7 @@
 
     clearInlineResult();
     cards.forEach((card, index) => {
-      if (boardEls[index]) buildAnswer(boardEls[index], card, index);
+      if (boardEls[index]) buildAnswer(boardEls[index], card);
     });
 
     const scoreBox = modalBody.querySelector('.result-score');
