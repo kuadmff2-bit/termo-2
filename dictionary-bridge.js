@@ -50,13 +50,22 @@
     const isLetter = typeof event.key === 'string' && /^[a-zA-Z]$/.test(event.key);
     if (!isLetter) return;
 
-    if (event.repeat || rowIsFull()) {
+    // Segurar uma tecla não pode ficar sobrescrevendo a linha em loop.
+    if (event.repeat) {
       event.preventDefault();
       event.stopImmediatePropagation();
       return;
     }
 
-    setTimeout(pinCursorToLastCell, 0);
+    // Se a linha ainda não estava completa, ao preencher a 5ª casa
+    // o cursor para na última. Se já estava completa, a letra selecionada
+    // pode ser substituída normalmente e o cursor continua navegável.
+    const wasFull = rowIsFull();
+    if (!wasFull) {
+      setTimeout(() => {
+        if (rowIsFull()) pinCursorToLastCell();
+      }, 0);
+    }
   }, true);
 
   const keyboard = document.getElementById('keyboard');
@@ -66,13 +75,12 @@
       const key = button?.dataset?.key || '';
       if (!/^[A-Z]$/.test(key)) return;
 
-      if (rowIsFull()) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        return;
+      const wasFull = rowIsFull();
+      if (!wasFull) {
+        setTimeout(() => {
+          if (rowIsFull()) pinCursorToLastCell();
+        }, 0);
       }
-
-      setTimeout(pinCursorToLastCell, 0);
     }, true);
   }
 })();
