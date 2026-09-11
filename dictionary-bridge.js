@@ -3,21 +3,27 @@
 
   const local = Array.isArray(window.TERMO_WORDS) ? window.TERMO_WORDS : [];
   const commonBR = Array.isArray(window.TERMO_COMMON_BR) ? window.TERMO_COMMON_BR : local;
+  const validBR = Array.isArray(window.TERMO_VALID_BR) ? window.TERMO_VALID_BR : commonBR;
 
-  const seen = new Set();
-  const common = [];
+  const mergeUnique = (list) => {
+    const seen = new Set();
+    const result = [];
+    for (const raw of list) {
+      const word = String(raw || '').trim().toLowerCase();
+      if (!word || seen.has(word)) continue;
+      seen.add(word);
+      result.push(word);
+    }
+    return result;
+  };
 
-  for (const raw of commonBR) {
-    const word = String(raw || '').trim().toLowerCase();
-    if (!word || seen.has(word)) continue;
-    seen.add(word);
-    common.push(word);
-  }
+  const solutions = mergeUnique(commonBR);
+  const validWords = mergeUnique(validBR);
 
-  // A mesma lista brasileira e conhecida serve para respostas e palpites.
-  // O catálogo gigante continua no repositório, mas não participa mais do jogo.
-  window.TERMO_WORDS = common;
-  window.TERMO_VALID_WORDS = common;
-  window.TERMO_DICTIONARY_SIZE = common.length;
-  window.TERMO_SOLUTION_SIZE = common.length;
+  // Respostas: apenas palavras brasileiras mais frequentes.
+  window.TERMO_WORDS = solutions;
+  // Palpites: faixa maior da mesma base de frequência pt-BR.
+  window.TERMO_VALID_WORDS = validWords;
+  window.TERMO_DICTIONARY_SIZE = validWords.length;
+  window.TERMO_SOLUTION_SIZE = solutions.length;
 })();
