@@ -293,11 +293,11 @@
 
     if (key === 'ENTER') return submitGuess();
     if (key === 'ARROWLEFT') {
-      cursorPos = Math.max(0, cursorPos - 1);
+      cursorPos = (cursorPos + 4) % 5;
       return renderBoards();
     }
     if (key === 'ARROWRIGHT') {
-      cursorPos = Math.min(4, cursorPos + 1);
+      cursorPos = (cursorPos + 1) % 5;
       return renderBoards();
     }
     if (key === 'DELETE') {
@@ -316,7 +316,7 @@
 
     if (/^[A-Z]$/.test(key)) {
       input[cursorPos] = key.toLowerCase();
-      if (cursorPos < 4) cursorPos++;
+      cursorPos = (cursorPos + 1) % 5;
       renderBoards();
     }
   }
