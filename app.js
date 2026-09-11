@@ -139,7 +139,8 @@
         row.className = 'row';
         row.dataset.row = rowIndex;
 
-        const submitted = game.guesses[rowIndex];
+        const solvedBeforeThisRow = game.solved[boardIndex] && game.solvedAt[boardIndex] && rowIndex >= game.solvedAt[boardIndex];
+        const submitted = solvedBeforeThisRow ? null : game.guesses[rowIndex];
         const preview = rowIndex === game.guesses.length && !game.solved[boardIndex] ? input : '';
         const displayGuess = submitted ? canonicalGuess(submitted) : preview;
         const result = game.results[boardIndex][rowIndex];
