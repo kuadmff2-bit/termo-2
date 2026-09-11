@@ -12,10 +12,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260911-2320" />
+  <link rel="stylesheet" href="styles.css?v=20260911-2321" />
   <style>
     .app-shell{
-      width:min(100%,1320px);
+      width:min(100%,1500px);
       grid-template-rows:48px 24px minmax(0,1fr) auto;
     }
 
@@ -53,7 +53,6 @@
     .infinity{font-size:23px}
     #statsBtn{display:none!important}
 
-    /* Mantém o painel alto e legível, reduzindo apenas a largura. */
     .side-panel.stats-panel{
       display:block;
       position:fixed;
@@ -90,27 +89,25 @@
     .boards-2{column-gap:68px}
     .boards-3{column-gap:38px}
 
-    /* Desktop: QUARTETO maior, mantendo os quatro lado a lado. */
     .boards-4{
       width:100%;
-      grid-template-columns:repeat(4, 205px);
-      column-gap:24px;
+      grid-template-columns:repeat(4, 245px);
+      column-gap:22px;
       row-gap:0;
       align-content:center;
       justify-content:center;
-      padding:10px 0 6px;
+      padding:8px 0 4px;
     }
     .boards-4 .board{gap:5px}
     .boards-4 .row{gap:5px}
     .boards-4 .tile{
       border-width:3px;
       border-radius:6px;
-      font-size:clamp(18px,2.7vmin,25px);
+      font-size:clamp(20px,3vmin,28px);
     }
 
-    /* Um pouco mais de respiro entre os tabuleiros e o teclado. */
     .boards-4 + .keyboard{
-      transform:translateY(18px);
+      transform:translateY(22px);
     }
 
     @media(max-width:1200px){
@@ -213,13 +210,13 @@
     </section>
   </div>
 
-  <script src="words.js?v=20260911-2320"></script>
-  <script src="extra-words.js?v=20260911-2320"></script>
-  <script src="all-words.js?v=20260911-2320"></script>
-  <script src="common-br.js?v=20260911-2320"></script>
-  <script src="dictionary-bridge.js?v=20260911-2320"></script>
-  <script src="guess-bridge.js?v=20260911-2320"></script>
-  <script src="app.js?v=20260911-2320"></script>
-  <script src="ui-enhancements.js?v=20260911-2320"></script>
+  <script src="words.js?v=20260911-2321"></script>
+  <script src="extra-words.js?v=20260911-2321"></script>
+  <script src="all-words.js?v=20260911-2321"></script>
+  <script src="common-br.js?v=20260911-2321"></script>
+  <script src="dictionary-bridge.js?v=20260911-2321"></script>
+  <script src="guess-bridge.js?v=20260911-2321"></script>
+  <script src="app.js?v=20260911-2321"></script>
+  <script src="ui-enhancements.js?v=20260911-2321"></script>
 </body>
 </html>
