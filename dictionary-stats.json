@@ -1,0 +1,9 @@
+{
+  "total": 15171,
+  "sources": {
+    "https://raw.githubusercontent.com/fserb/pt-br/master/lexico": 6046,
+    "https://raw.githubusercontent.com/fserb/pt-br/master/conjuga%C3%A7%C3%B5es": 2582,
+    "https://raw.githubusercontent.com/fserb/pt-br/master/icf": 2674,
+    "https://raw.githubusercontent.com/pythonprobr/palavras/master/palavras.txt": 3869
+  }
+}
