@@ -1,0 +1,120 @@
+name: Gerar catalogo brasileiro comum
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/build-common-br.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gerar listas por frequencia
+        shell: python
+        run: |
+          from pathlib import Path
+          import json
+          import re
+          import unicodedata
+          import urllib.request
+
+          URL = 'https://raw.githubusercontent.com/brayanfss/wordbombdb-pt/main/20k.txt'
+          req = urllib.request.Request(URL, headers={'User-Agent':'termu-frequency-builder'})
+          with urllib.request.urlopen(req, timeout=60) as r:
+              lines = r.read().decode('utf-8', errors='ignore').splitlines()
+
+          allowed = re.compile(r'^[a-záàâãéêíóôõúüç]+$', re.I)
+          denied = {'sertã','feirá','surfá'}
+          guaranteed = [
+              'filha','surfa','surfe','surfo','feira','amiga','amigo','filho','irmão',
+              'quero','posso','podia','devia','disse','feito','fosse','houve','venha','vinha',
+              'porta','prato','roupa','posto','rádio','salto','setor','sítio','tampa','tanto',
+              'trigo','tropa','vamos','vimos','vendo','nasce','passa','perde','deixe','falha'
+          ]
+
+          def norm(w):
+              return ''.join(ch for ch in unicodedata.normalize('NFD', w.lower()) if unicodedata.category(ch) != 'Mn').replace('ç','c')
+
+          def valid(w):
+              w = w.strip().lower()
+              return bool(w and allowed.fullmatch(w) and len(norm(w)) == 5 and norm(w).isalpha() and w not in denied)
+
+          def build(limit):
+              out=[]
+              seen=set()
+              for raw in lines[:limit]:
+                  w=raw.strip().lower()
+                  if not valid(w):
+                      continue
+                  k=norm(w)
+                  if k in seen:
+                      continue
+                  seen.add(k)
+                  out.append(w)
+              return out, seen
+
+          solutions, solution_seen = build(8000)
+          guesses, guess_seen = build(15000)
+
+          for w in guaranteed:
+              if not valid(w):
+                  continue
+              k=norm(w)
+              if k not in guess_seen:
+                  guesses.append(w); guess_seen.add(k)
+              if k not in solution_seen:
+                  solutions.append(w); solution_seen.add(k)
+
+          for bad in denied:
+              kb=norm(bad)
+              solutions=[w for w in solutions if norm(w)!=kb]
+              guesses=[w for w in guesses if norm(w)!=kb]
+
+          checks = {
+              'filha_solution': any(norm(w)=='filha' for w in solutions),
+              'filha_guess': any(norm(w)=='filha' for w in guesses),
+              'surfa_guess': any(norm(w)=='surfa' for w in guesses),
+              'serta_present': any(norm(w)=='serta' for w in guesses),
+          }
+          if not checks['filha_guess'] or checks['serta_present']:
+              raise RuntimeError(f'Falha nos filtros: {checks}')
+
+          payload = (
+              '// GERADO AUTOMATICAMENTE a partir de lista pt-BR ordenada por frequencia.\n'
+              '// Respostas usam faixa mais frequente; palpites usam faixa mais ampla.\n'
+              'window.TERMO_COMMON_BR=' + json.dumps(solutions, ensure_ascii=False, separators=(',',':')) + ';\n'
+              'window.TERMO_VALID_BR=' + json.dumps(guesses, ensure_ascii=False, separators=(',',':')) + ';\n'
+          )
+          Path('common-br.js').write_text(payload, encoding='utf-8')
+          Path('common-br-stats.json').write_text(json.dumps({
+              'solutions': len(solutions),
+              'guesses': len(guesses),
+              'checks': checks,
+              'source': 'brayanfss/wordbombdb-pt 20k.txt'
+          }, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
+          print('Respostas:', len(solutions))
+          print('Palpites:', len(guesses))
+          print(checks)
+
+      - name: Salvar catalogo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add common-br.js common-br-stats.json
+          if git diff --cached --quiet; then
+            echo "Catalogo ja atualizado"
+            exit 0
+          fi
+          git commit -m "Atualiza palavras brasileiras frequentes [skip ci]"
+          git pull --rebase origin main
+          git push origin main
