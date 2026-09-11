@@ -12,14 +12,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260911-2252" />
+  <link rel="stylesheet" href="styles.css?v=20260911-2256" />
   <style>
     .app-shell{
       width:min(100%,1060px);
       grid-template-rows:48px 24px minmax(0,1fr) auto;
     }
 
-    /* Topo compacto para liberar mais área aos tabuleiros. */
     .topbar{
       height:48px;
       grid-template-columns:44px 1fr 44px;
@@ -41,7 +40,6 @@
     .infinity{font-size:23px}
     .topbar .icon-btn{width:34px;height:34px;font-size:17px;border-radius:8px}
 
-    /* Painel lateral é somente o placar. */
     .side-panel.stats-panel{
       display:block;
       position:fixed;
@@ -74,7 +72,6 @@
     .stats-panel .scorebar .label{font-size:9px;margin-bottom:5px}
     .stats-panel .scorebar strong{font-size:22px}
 
-    /* Mais espaço entre os jogos simultâneos. */
     .boards{column-gap:42px;row-gap:24px}
     .boards-2{column-gap:68px}
     .boards-3{column-gap:38px}
@@ -149,7 +146,6 @@
         <div><span class="label">SEQUÊNCIA</span><strong id="streakValue">0</strong></div>
       </section>
 
-      <!-- Elementos mantidos apenas para o motor do jogo. -->
       <div class="hidden" aria-hidden="true">
         <button class="icon-btn" id="helpBtn" type="button" tabindex="-1">?</button>
         <span id="attemptValue">1 / 6</span>
@@ -171,10 +167,12 @@
     </section>
   </div>
 
-  <script src="words.js?v=20260911-2252"></script>
-  <script src="extra-words.js?v=20260911-2252"></script>
-  <script src="all-words.js?v=20260911-2252"></script>
-  <script src="dictionary-bridge.js?v=20260911-2252"></script>
-  <script src="app.js?v=20260911-2252"></script>
+  <script src="words.js?v=20260911-2256"></script>
+  <script src="extra-words.js?v=20260911-2256"></script>
+  <script src="all-words.js?v=20260911-2256"></script>
+  <script src="common-br.js?v=20260911-2256"></script>
+  <script src="dictionary-bridge.js?v=20260911-2256"></script>
+  <script src="guess-bridge.js?v=20260911-2256"></script>
+  <script src="app.js?v=20260911-2256"></script>
 </body>
 </html>
