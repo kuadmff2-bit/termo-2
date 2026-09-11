@@ -33,7 +33,7 @@ jobs:
               lines = r.read().decode('utf-8', errors='ignore').splitlines()
 
           allowed = re.compile(r'^[a-záàâãéêíóôõúüç]+$', re.I)
-          denied = {'sertã','feirá','surfá'}
+          denied_exact = {'sertã','feirá','surfá'}
           guaranteed = [
               'filha','surfa','surfe','surfo','feira','amiga','amigo','filho','irmão',
               'quero','posso','podia','devia','disse','feito','fosse','houve','venha','vinha',
@@ -46,7 +46,7 @@ jobs:
 
           def valid(w):
               w = w.strip().lower()
-              return bool(w and allowed.fullmatch(w) and len(norm(w)) == 5 and norm(w).isalpha() and w not in denied)
+              return bool(w and allowed.fullmatch(w) and len(norm(w)) == 5 and norm(w).isalpha() and w not in denied_exact)
 
           def build(limit):
               out=[]
@@ -74,18 +74,13 @@ jobs:
               if k not in solution_seen:
                   solutions.append(w); solution_seen.add(k)
 
-          for bad in denied:
-              kb=norm(bad)
-              solutions=[w for w in solutions if norm(w)!=kb]
-              guesses=[w for w in guesses if norm(w)!=kb]
-
           checks = {
               'filha_solution': any(norm(w)=='filha' for w in solutions),
               'filha_guess': any(norm(w)=='filha' for w in guesses),
               'surfa_guess': any(norm(w)=='surfa' for w in guesses),
               'serta_present': any(norm(w)=='serta' for w in guesses),
           }
-          if not checks['filha_guess'] or checks['serta_present']:
+          if not checks['filha_guess'] or not checks['surfa_guess'] or checks['serta_present']:
               raise RuntimeError(f'Falha nos filtros: {checks}')
 
           payload = (
