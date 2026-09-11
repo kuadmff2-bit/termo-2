@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Baixar repositório
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Instalar ferramentas Hunspell
         run: |
@@ -33,8 +35,6 @@ jobs:
 
       - name: Expandir flexões do Hunspell
         run: |
-          # O .dic contém raízes + regras. unmunch aplica as regras do .aff e
-          # gera formas flexionadas que uma wordlist simples costuma perder.
           unmunch pt_BR.dic pt_BR.aff > hunspell-expanded.txt 2>hunspell-warnings.log || true
           echo "Formas geradas pelo Hunspell: $(wc -l < hunspell-expanded.txt)"
 
@@ -48,20 +48,14 @@ jobs:
           import urllib.request
 
           SOURCES = [
-              # fserb/pt-br — MIT
               'https://raw.githubusercontent.com/fserb/pt-br/master/lexico',
               'https://raw.githubusercontent.com/fserb/pt-br/master/conjuga%C3%A7%C3%B5es',
               'https://raw.githubusercontent.com/fserb/pt-br/master/icf',
-              # pythonprobr/palavras — derivado do dicionário pt-BR do LibreOffice
               'https://raw.githubusercontent.com/pythonprobr/palavras/master/palavras.txt',
           ]
 
           TOKEN = re.compile(r"[A-Za-zÀ-ÖØ-öø-ÿ]+", re.UNICODE)
-
-          # Formas comuns que queremos garantir mesmo se uma fonte externa mudar.
-          GUARANTEED = {
-              'surfa', 'surfe', 'surfo',
-          }
+          GUARANTEED = {'surfa', 'surfe', 'surfo'}
 
           def normalize(word: str) -> str:
               return ''.join(
@@ -77,9 +71,7 @@ jobs:
               if not word:
                   return False
               key = normalize(word)
-              if len(key) != 5:
-                  return False
-              if not key.isascii() or not key.isalpha():
+              if len(key) != 5 or not key.isascii() or not key.isalpha():
                   return False
 
               current = canonical.get(key)
@@ -105,7 +97,6 @@ jobs:
                       add_word(candidate)
               source_counts[url] = len(canonical) - before
 
-          # Raízes oficiais do LibreOffice. Remove as flags Hunspell após '/'.
           before = len(canonical)
           dic_lines = pathlib.Path('pt_BR.dic').read_text(
               encoding='utf-8', errors='ignore'
@@ -115,18 +106,14 @@ jobs:
               add_word(root)
           source_counts['LibreOffice pt_BR.dic (raízes)'] = len(canonical) - before
 
-          # Formas geradas pelas regras de afixo/conjugação do Hunspell.
           before = len(canonical)
           expanded_path = pathlib.Path('hunspell-expanded.txt')
           if expanded_path.exists():
-              for line in expanded_path.read_text(
-                  encoding='utf-8', errors='ignore'
-              ).splitlines():
-                  # Algumas versões podem imprimir informação extra; a primeira
-                  # sequência alfabética é a forma gerada.
-                  match = TOKEN.search(line)
-                  if match:
-                      add_word(match.group(0))
+              with expanded_path.open('r', encoding='utf-8', errors='ignore') as handle:
+                  for line in handle:
+                      match = TOKEN.search(line)
+                      if match:
+                          add_word(match.group(0))
           source_counts['LibreOffice + Hunspell (flexões)'] = len(canonical) - before
 
           before = len(canonical)
@@ -149,17 +136,12 @@ jobs:
               json.dumps(words, ensure_ascii=False, separators=(',', ':')) +
               ';\n'
           )
-          pathlib.Path('all-words.js').write_text(
-              header + payload,
-              encoding='utf-8'
-          )
+          pathlib.Path('all-words.js').write_text(header + payload, encoding='utf-8')
 
           stats = {
               'total': len(words),
               'sources': source_counts,
-              'checks': {
-                  'surfa': 'surfa' in canonical,
-              },
+              'checks': {'surfa': 'surfa' in canonical},
           }
           pathlib.Path('dictionary-stats.json').write_text(
               json.dumps(stats, ensure_ascii=False, indent=2) + '\n',
@@ -179,4 +161,6 @@ jobs:
             exit 0
           fi
           git commit -m "Amplia catálogo de palavras de 5 letras [skip ci]"
-          git push
+          git fetch origin main
+          git rebase origin/main
+          git push origin main
