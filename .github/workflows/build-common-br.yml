@@ -35,10 +35,11 @@ jobs:
           allowed = re.compile(r'^[a-záàâãéêíóôõúüç]+$', re.I)
           denied_exact = {'sertã','feirá','surfá'}
           guaranteed = [
-              'filha','surfa','surfe','surfo','feira','amiga','amigo','filho','irmão',
+              'filha','surfa','surfe','surfo','feira','ferra','fuzil','amiga','amigo','filho','irmão',
               'quero','posso','podia','devia','disse','feito','fosse','houve','venha','vinha',
               'porta','prato','roupa','posto','rádio','salto','setor','sítio','tampa','tanto',
-              'trigo','tropa','vamos','vimos','vendo','nasce','passa','perde','deixe','falha'
+              'trigo','tropa','vamos','vimos','vendo','nasce','passa','perde','deixe','falha',
+              'ferro','festa','falta','falar','andar','beber','caixa','chave','claro','corpo','corte'
           ]
 
           def norm(w):
@@ -62,8 +63,9 @@ jobs:
                   out.append(w)
               return out, seen
 
+          # Respostas continuam na faixa mais comum; palpites usam a base inteira.
           solutions, solution_seen = build(8000)
-          guesses, guess_seen = build(15000)
+          guesses, guess_seen = build(len(lines))
 
           for w in guaranteed:
               if not valid(w):
@@ -78,14 +80,17 @@ jobs:
               'filha_solution': any(norm(w)=='filha' for w in solutions),
               'filha_guess': any(norm(w)=='filha' for w in guesses),
               'surfa_guess': any(norm(w)=='surfa' for w in guesses),
+              'ferra_guess': any(norm(w)=='ferra' for w in guesses),
+              'fuzil_guess': any(norm(w)=='fuzil' for w in guesses),
               'serta_present': any(norm(w)=='serta' for w in guesses),
           }
-          if not checks['filha_guess'] or not checks['surfa_guess'] or checks['serta_present']:
+          if (not checks['filha_guess'] or not checks['surfa_guess'] or
+              not checks['ferra_guess'] or not checks['fuzil_guess'] or checks['serta_present']):
               raise RuntimeError(f'Falha nos filtros: {checks}')
 
           payload = (
               '// GERADO AUTOMATICAMENTE a partir de lista pt-BR ordenada por frequencia.\n'
-              '// Respostas usam faixa mais frequente; palpites usam faixa mais ampla.\n'
+              '// Respostas usam faixa mais frequente; palpites usam as 20 mil entradas completas filtradas.\n'
               'window.TERMO_COMMON_BR=' + json.dumps(solutions, ensure_ascii=False, separators=(',',':')) + ';\n'
               'window.TERMO_VALID_BR=' + json.dumps(guesses, ensure_ascii=False, separators=(',',':')) + ';\n'
           )
