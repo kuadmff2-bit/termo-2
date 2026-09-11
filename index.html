@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260911-2250" />
+  <link rel="stylesheet" href="styles.css?v=20260911-2252" />
   <style>
     .app-shell{
       width:min(100%,1060px);
@@ -22,14 +22,17 @@
     /* Topo compacto para liberar mais área aos tabuleiros. */
     .topbar{
       height:48px;
-      grid-template-columns:130px 1fr 44px;
+      grid-template-columns:44px 1fr 44px;
     }
     .corner-brand{
-      justify-self:start;
-      font-size:18px;
+      position:fixed;
+      z-index:25;
+      left:10px;
+      top:10px;
+      font-size:28px;
       line-height:1;
       font-weight:800;
-      letter-spacing:.13em;
+      letter-spacing:.11em;
       color:#f5f7fb;
       user-select:none;
     }
@@ -111,9 +114,14 @@
       }
       .topbar{
         height:44px;
-        grid-template-columns:88px 1fr 36px;
+        grid-template-columns:36px 1fr 36px;
       }
-      .corner-brand{font-size:14px;letter-spacing:.09em}
+      .corner-brand{
+        left:7px;
+        top:12px;
+        font-size:20px;
+        letter-spacing:.08em;
+      }
       .brand-wrap h1{font-size:20px}
       .infinity{font-size:19px}
       .topbar .icon-btn{width:30px;height:30px;font-size:15px}
@@ -163,10 +171,10 @@
     </section>
   </div>
 
-  <script src="words.js?v=20260911-2250"></script>
-  <script src="extra-words.js?v=20260911-2250"></script>
-  <script src="all-words.js?v=20260911-2250"></script>
-  <script src="dictionary-bridge.js?v=20260911-2250"></script>
-  <script src="app.js?v=20260911-2250"></script>
+  <script src="words.js?v=20260911-2252"></script>
+  <script src="extra-words.js?v=20260911-2252"></script>
+  <script src="all-words.js?v=20260911-2252"></script>
+  <script src="dictionary-bridge.js?v=20260911-2252"></script>
+  <script src="app.js?v=20260911-2252"></script>
 </body>
 </html>
