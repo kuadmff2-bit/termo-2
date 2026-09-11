@@ -12,10 +12,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260911-2318" />
+  <link rel="stylesheet" href="styles.css?v=20260911-2319" />
   <style>
     .app-shell{
-      width:min(100%,1060px);
+      width:min(100%,1180px);
       grid-template-rows:48px 24px minmax(0,1fr) auto;
     }
 
@@ -53,62 +53,64 @@
     .infinity{font-size:23px}
     #statsBtn{display:none!important}
 
-    /* Placar lateral menor para liberar mais espaço para os tabuleiros. */
+    /* Painel realmente estreito: só placar, sem roubar largura visual. */
     .side-panel.stats-panel{
       display:block;
       position:fixed;
       z-index:20;
-      left:max(18px,calc(50vw - 760px));
+      left:16px;
       top:50%;
       transform:translateY(-50%);
-      width:165px;
-      padding:7px;
-      border-radius:13px;
+      width:122px;
+      padding:5px;
+      border-radius:12px;
       border:1px solid rgba(255,255,255,.08);
       background:rgba(23,26,33,.94);
-      box-shadow:0 16px 38px rgba(0,0,0,.24);
+      box-shadow:0 14px 30px rgba(0,0,0,.22);
       backdrop-filter:blur(14px);
     }
     .stats-panel .scorebar{
       width:100%;
       margin:0;
       grid-template-columns:1fr;
-      border-radius:9px;
+      border-radius:8px;
       box-shadow:none;
       background:transparent;
     }
     .stats-panel .scorebar>div{
-      padding:10px 6px;
+      padding:8px 4px;
       border-right:0;
       border-bottom:1px solid rgba(255,255,255,.08);
     }
     .stats-panel .scorebar>div:last-child{border-bottom:0}
-    .stats-panel .scorebar .label{font-size:8px;margin-bottom:3px}
-    .stats-panel .scorebar strong{font-size:18px}
+    .stats-panel .scorebar .label{font-size:7px;margin-bottom:2px;letter-spacing:.11em}
+    .stats-panel .scorebar strong{font-size:17px}
 
     .boards{column-gap:42px;row-gap:24px}
     .boards-2{column-gap:68px}
     .boards-3{column-gap:38px}
 
-    /* QUARTETO precisa caber inteiro junto com o teclado. */
+    /* Desktop: os quatro tabuleiros ficam lado a lado, em tamanho normal. */
     .boards-4{
-      grid-template-columns:repeat(2,145px);
-      column-gap:74px;
-      row-gap:18px;
+      width:100%;
+      grid-template-columns:repeat(4, minmax(155px, 178px));
+      column-gap:28px;
+      row-gap:0;
       align-content:center;
-      padding:5px 0 7px;
+      justify-content:center;
+      padding:8px 0 10px;
     }
-    .boards-4 .board{gap:3px}
-    .boards-4 .row{gap:3px}
+    .boards-4 .board{gap:4px}
+    .boards-4 .row{gap:4px}
     .boards-4 .tile{
-      border-width:2px;
-      border-radius:4px;
-      font-size:clamp(14px,2.2vmin,19px);
+      border-width:3px;
+      border-radius:5px;
+      font-size:clamp(16px,2.5vmin,23px);
     }
 
     @media(max-width:1200px){
       .app-shell{
-        width:min(100%,960px);
+        width:min(100%,1040px);
         grid-template-rows:48px auto 24px minmax(0,1fr) auto;
       }
       .side-panel.stats-panel{
@@ -130,7 +132,11 @@
       .stats-panel .scorebar strong{font-size:13px}
       .boards-2{column-gap:46px}
       .boards-3{column-gap:24px}
-      .boards-4{grid-template-columns:repeat(2,138px);column-gap:42px;row-gap:16px}
+      .boards-4{
+        grid-template-columns:repeat(2, minmax(165px,190px));
+        column-gap:44px;
+        row-gap:18px;
+      }
     }
 
     @media(max-width:760px){
@@ -151,7 +157,11 @@
       .boards{column-gap:12px;row-gap:14px}
       .boards-2{column-gap:14px}
       .boards-3{column-gap:7px}
-      .boards-4{grid-template-columns:repeat(2,124px);column-gap:13px;row-gap:12px}
+      .boards-4{
+        grid-template-columns:repeat(2, minmax(124px,145px));
+        column-gap:13px;
+        row-gap:12px;
+      }
       .boards-4 .board{gap:2px}
       .boards-4 .row{gap:2px}
       .boards-4 .tile{border-width:2px;font-size:14px}
@@ -197,13 +207,13 @@
     </section>
   </div>
 
-  <script src="words.js?v=20260911-2318"></script>
-  <script src="extra-words.js?v=20260911-2318"></script>
-  <script src="all-words.js?v=20260911-2318"></script>
-  <script src="common-br.js?v=20260911-2318"></script>
-  <script src="dictionary-bridge.js?v=20260911-2318"></script>
-  <script src="guess-bridge.js?v=20260911-2318"></script>
-  <script src="app.js?v=20260911-2318"></script>
-  <script src="ui-enhancements.js?v=20260911-2318"></script>
+  <script src="words.js?v=20260911-2319"></script>
+  <script src="extra-words.js?v=20260911-2319"></script>
+  <script src="all-words.js?v=20260911-2319"></script>
+  <script src="common-br.js?v=20260911-2319"></script>
+  <script src="dictionary-bridge.js?v=20260911-2319"></script>
+  <script src="guess-bridge.js?v=20260911-2319"></script>
+  <script src="app.js?v=20260911-2319"></script>
+  <script src="ui-enhancements.js?v=20260911-2319"></script>
 </body>
 </html>
