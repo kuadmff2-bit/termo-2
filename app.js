@@ -15,7 +15,7 @@
   ];
 
   const STORAGE_KEY = 'termo-infinito-v1';
-  const normalize = (value) => value
+  const normalize = (value) => String(value || '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/ç/gi, 'c')
@@ -30,6 +30,7 @@
     const key = normalize(word);
     if (!canonicalByNormalized.has(key) || /[áàâãéêíóôõúüç]/i.test(word)) canonicalByNormalized.set(key, word);
   });
+
   const solutionPool = [...canonicalByNormalized.values()];
   const validGuesses = new Set(canonicalByNormalized.keys());
 
@@ -44,6 +45,10 @@
   const modalTitleEl = document.getElementById('modalTitle');
   const modalBodyEl = document.getElementById('modalBody');
   const modalCloseEl = document.getElementById('modalClose');
+  const attemptValueEl = document.getElementById('attemptValue');
+  const boardValueEl = document.getElementById('boardValue');
+  const nextRoundBtn = document.getElementById('nextRoundBtn');
+  const modeItems = [...document.querySelectorAll('.mode-item')];
 
   const defaultPersistent = {
     score: 0,
@@ -60,6 +65,7 @@
   let persistent = loadPersistent();
   let game = null;
   let input = '';
+  let cursorPos = 0;
   let locked = false;
   let messageTimer = null;
 
@@ -82,6 +88,7 @@
     const pool = candidates.length >= count ? candidates : solutionPool;
     const selected = [];
     const used = new Set();
+
     while (selected.length < count && used.size < pool.length) {
       const index = Math.floor(Math.random() * pool.length);
       const word = pool[index];
@@ -106,6 +113,7 @@
       finished: false
     };
     input = '';
+    cursorPos = 0;
     locked = false;
     modeTitleEl.textContent = mode.name;
     renderAll();
@@ -113,6 +121,7 @@
 
   function renderAll() {
     updateStatsBar();
+    renderSidebar();
     renderBoards();
     renderKeyboard();
   }
@@ -121,6 +130,22 @@
     scoreValueEl.textContent = persistent.score.toLocaleString('pt-BR');
     cycleValueEl.textContent = persistent.cycle;
     streakValueEl.textContent = persistent.streak;
+  }
+
+  function renderSidebar() {
+    if (!game) return;
+    attemptValueEl.textContent = `${Math.min(game.guesses.length + (game.finished ? 0 : 1), game.mode.attempts)} / ${game.mode.attempts}`;
+    boardValueEl.textContent = game.mode.boards === 1 ? '1 palavra' : `${game.mode.boards} palavras`;
+
+    modeItems.forEach((item, index) => {
+      item.classList.remove('active', 'done');
+      if (index < persistent.modeIndex || (index === persistent.modeIndex && game.finished)) item.classList.add('done');
+      if (index === persistent.modeIndex && !game.finished) item.classList.add('active');
+    });
+
+    const nextMode = MODES[(persistent.modeIndex + 1) % MODES.length];
+    nextRoundBtn.textContent = `Jogar ${nextMode.name} →`;
+    nextRoundBtn.classList.toggle('hidden', !game.finished);
   }
 
   function renderBoards() {
@@ -141,7 +166,8 @@
 
         const solvedBeforeThisRow = game.solved[boardIndex] && game.solvedAt[boardIndex] && rowIndex >= game.solvedAt[boardIndex];
         const submitted = solvedBeforeThisRow ? null : game.guesses[rowIndex];
-        const preview = rowIndex === game.guesses.length && !game.solved[boardIndex] ? input : '';
+        const isCurrentRow = rowIndex === game.guesses.length && !game.solved[boardIndex] && !game.finished;
+        const preview = isCurrentRow ? input : '';
         const displayGuess = submitted ? canonicalGuess(submitted) : preview;
         const result = game.results[boardIndex][rowIndex];
 
@@ -150,8 +176,19 @@
           tile.className = 'tile';
           const char = displayGuess?.[col] || '';
           tile.textContent = char;
+
           if (char && !result) tile.classList.add('filled');
           if (result?.[col]) tile.classList.add(result[col]);
+          if (isCurrentRow && col === cursorPos && cursorPos < 5) tile.classList.add('active');
+
+          if (isCurrentRow) {
+            tile.classList.add('editable');
+            tile.addEventListener('click', () => {
+              if (locked) return;
+              cursorPos = Math.min(col, input.length);
+              renderBoards();
+            });
+          }
           row.appendChild(tile);
         }
         board.appendChild(row);
@@ -171,6 +208,7 @@
     KEYS.forEach(rowKeys => {
       const row = document.createElement('div');
       row.className = 'keyboard-row';
+
       rowKeys.forEach(key => {
         const button = document.createElement('button');
         button.className = `key${key.length > 1 ? ' wide' : ''}`;
@@ -209,6 +247,7 @@
   function getKeyboardStatus() {
     const status = {};
     const rank = { absent: 1, present: 2, correct: 3 };
+
     game.guesses.forEach((guess, guessIndex) => {
       for (let boardIndex = 0; boardIndex < game.mode.boards; boardIndex++) {
         const result = game.results[boardIndex][guessIndex];
@@ -237,6 +276,7 @@
         remaining[s[i]] = (remaining[s[i]] || 0) + 1;
       }
     }
+
     for (let i = 0; i < 5; i++) {
       if (result[i] === 'correct') continue;
       if ((remaining[g[i]] || 0) > 0) {
@@ -250,13 +290,43 @@
   function handleKey(rawKey) {
     if (locked || game.finished) return;
     const key = String(rawKey).toUpperCase();
+
     if (key === 'ENTER') return submitGuess();
-    if (key === 'BACKSPACE') {
-      input = input.slice(0, -1);
+    if (key === 'ARROWLEFT') {
+      cursorPos = Math.max(0, cursorPos - 1);
       return renderBoards();
     }
-    if (/^[A-Z]$/.test(key) && input.length < 5) {
-      input += key.toLowerCase();
+    if (key === 'ARROWRIGHT') {
+      cursorPos = Math.min(input.length, cursorPos + 1);
+      return renderBoards();
+    }
+    if (key === 'DELETE') {
+      if (cursorPos < input.length) {
+        input = input.slice(0, cursorPos) + input.slice(cursorPos + 1);
+        renderBoards();
+      }
+      return;
+    }
+    if (key === 'BACKSPACE') {
+      if (cursorPos > 0) {
+        input = input.slice(0, cursorPos - 1) + input.slice(cursorPos);
+        cursorPos--;
+      } else if (input.length) {
+        input = input.slice(0, -1);
+        cursorPos = input.length;
+      }
+      return renderBoards();
+    }
+
+    if (/^[A-Z]$/.test(key)) {
+      const letter = key.toLowerCase();
+      if (input.length < 5) {
+        input = input.slice(0, cursorPos) + letter + input.slice(cursorPos);
+        cursorPos++;
+      } else if (cursorPos < 5) {
+        input = input.slice(0, cursorPos) + letter + input.slice(cursorPos + 1);
+        cursorPos = Math.min(5, cursorPos + 1);
+      }
       renderBoards();
     }
   }
@@ -266,6 +336,7 @@
       shakeCurrentRows();
       return showMessage('Só palavras com 5 letras');
     }
+
     const normalizedInput = normalize(input);
     if (!validGuesses.has(normalizedInput)) {
       shakeCurrentRows();
@@ -281,6 +352,7 @@
         game.results[boardIndex][rowIndex] = null;
         continue;
       }
+
       const result = evaluateGuess(normalizedInput, game.solutions[boardIndex]);
       game.results[boardIndex][rowIndex] = result;
       if (result.every(status => status === 'correct')) {
@@ -290,7 +362,9 @@
     }
 
     input = '';
+    cursorPos = 0;
     renderBoards();
+    renderSidebar();
     animateSubmittedRow(rowIndex);
     renderKeyboard();
     await delay(440);
@@ -339,6 +413,7 @@
     persistent.score += gained;
     persistent.games += 1;
     persistent.boardsSolved += solvedCount;
+
     if (perfect) {
       persistent.streak += 1;
       persistent.perfectRounds += 1;
@@ -350,10 +425,13 @@
     persistent.recentSolutions = [...game.solutions, ...(persistent.recentSolutions || [])].slice(0, 40);
     savePersistent();
     updateStatsBar();
+    renderSidebar();
+    renderBoards();
     showResultModal(gained, perfect);
   }
 
   function advanceMode() {
+    if (!game?.finished) return;
     const wasQuarteto = persistent.modeIndex === MODES.length - 1;
     persistent.modeIndex = (persistent.modeIndex + 1) % MODES.length;
     if (wasQuarteto) persistent.cycle += 1;
@@ -362,20 +440,40 @@
     newGame();
   }
 
+  function answerLetters(word) {
+    return [...word.toUpperCase()].map(letter => `<span>${letter}</span>`).join('');
+  }
+
   function showResultModal(gained, perfect) {
     modalTitleEl.textContent = perfect ? `${game.mode.name} concluído!` : `${game.mode.name} encerrado`;
     const nextMode = MODES[(persistent.modeIndex + 1) % MODES.length];
-    const lines = game.solutions.map((solution, index) => {
-      const status = game.solved[index] ? `✓ ${game.solvedAt[index]}ª tentativa` : 'não resolvida';
-      return `<div class="solution-line"><span>${solution.toUpperCase()}</span><span>${status}</span></div>`;
+
+    const answers = game.solutions.map((solution, index) => {
+      const solved = game.solved[index];
+      const status = solved ? `Resolvida na ${game.solvedAt[index]}ª tentativa` : 'Essa era a palavra';
+      return `
+        <div class="answer-card ${solved ? 'solved-answer' : 'missed-answer'}">
+          <div class="answer-topline">
+            <span>${game.mode.boards > 1 ? `PALAVRA ${index + 1}` : 'A PALAVRA ERA'}</span>
+            <small>${status}</small>
+          </div>
+          <div class="answer-word" aria-label="${solution.toUpperCase()}">${answerLetters(solution)}</div>
+        </div>
+      `;
     }).join('');
 
     modalBodyEl.innerHTML = `
-      <div class="result-solutions">${lines}</div>
-      <div class="result-score"><span>Pontos nesta rodada</span><strong>+${gained}</strong><span>Total: ${persistent.score.toLocaleString('pt-BR')}</span></div>
+      <div class="result-solutions">${answers}</div>
+      <div class="result-score">
+        <span>Pontos nesta rodada</span>
+        <strong>+${gained}</strong>
+        <small>Total acumulado: ${persistent.score.toLocaleString('pt-BR')}</small>
+      </div>
       <button class="primary-btn" id="continueBtn">Jogar ${nextMode.name}</button>
       <button class="secondary-btn" id="shareBtn">Compartilhar resultado</button>
+      <p class="result-hint">Você pode fechar esta janela no ×. O botão para a próxima rodada também fica no painel lateral.</p>
     `;
+
     openModal();
     document.getElementById('continueBtn').addEventListener('click', advanceMode);
     document.getElementById('shareBtn').addEventListener('click', shareResult);
@@ -386,8 +484,10 @@
       const end = game.solvedAt[boardIndex] || game.guesses.length;
       return boardResults.slice(0, end).filter(Boolean).map(row => row.map(s => s === 'correct' ? '🟩' : s === 'present' ? '🟨' : '⬛').join('')).join('\n');
     }).join('\n\n');
+
     const solved = game.solved.filter(Boolean).length;
     const text = `TERMO ∞ • ${game.mode.name}\n${solved}/${game.mode.boards} • ${game.guesses.length}/${game.mode.attempts}\nPontos: ${persistent.score}\n\n${modeEmoji}`;
+
     try {
       if (navigator.share) await navigator.share({ text });
       else {
@@ -407,6 +507,7 @@
         <div class="legend-row"><span class="legend-tile absent">G</span><span>Letra que não faz parte da palavra.</span></div>
       </div>
       <p><strong>Ciclo infinito:</strong> TERMO (6) → DUPLO (7) → TRIPLO (8) → QUARTETO (9) → TERMO...</p>
+      <p>Use ← e → para mover o cursor entre as letras da tentativa atual. Também dá para clicar diretamente em uma casa.</p>
       <p>A pontuação e a sequência ficam salvas neste navegador. Acentos não alteram as dicas.</p>
     `;
     openModal();
@@ -424,9 +525,10 @@
         <div class="stat"><strong>${persistent.bestStreak}</strong><span>recorde</span></div>
       </div>
       <p>Uma rodada perfeita é aquela em que você resolve todos os tabuleiros antes do limite de tentativas.</p>
-      <button class="secondary-btn" id="resetBtn">Zerar progresso</button>
+      <button class="secondary-btn danger-btn" id="resetBtn">Zerar progresso</button>
     `;
     openModal();
+
     document.getElementById('resetBtn').addEventListener('click', () => {
       if (!confirm('Zerar pontos, estatísticas e voltar ao primeiro TERMO?')) return;
       persistent = { ...defaultPersistent };
@@ -445,26 +547,46 @@
     messageTimer = setTimeout(() => { messageEl.textContent = ''; }, 1800);
   }
 
-  function openModal() { backdropEl.classList.remove('hidden'); }
-  function forceCloseModal() { backdropEl.classList.add('hidden'); }
-  function delay(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+  function openModal() {
+    backdropEl.classList.remove('hidden');
+  }
+
+  function forceCloseModal() {
+    backdropEl.classList.add('hidden');
+  }
+
+  function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
 
   document.addEventListener('keydown', event => {
-    if (!backdropEl.classList.contains('hidden')) return;
+    if (!backdropEl.classList.contains('hidden')) {
+      if (event.key === 'Escape') forceCloseModal();
+      return;
+    }
+
     if (event.key === 'Enter') return handleKey('ENTER');
     if (event.key === 'Backspace') return handleKey('BACKSPACE');
+    if (event.key === 'Delete') return handleKey('DELETE');
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      return handleKey('ARROWLEFT');
+    }
+    if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      return handleKey('ARROWRIGHT');
+    }
+
     const letter = normalize(event.key).toUpperCase();
     if (/^[A-Z]$/.test(letter)) handleKey(letter);
   });
 
   document.getElementById('helpBtn').addEventListener('click', showHelp);
   document.getElementById('statsBtn').addEventListener('click', showStats);
-  modalCloseEl.addEventListener('click', () => {
-    if (game?.finished) return;
-    forceCloseModal();
-  });
+  nextRoundBtn.addEventListener('click', advanceMode);
+  modalCloseEl.addEventListener('click', forceCloseModal);
   backdropEl.addEventListener('click', event => {
-    if (event.target === backdropEl && !game?.finished) forceCloseModal();
+    if (event.target === backdropEl) forceCloseModal();
   });
 
   if (solutionPool.length < 50) console.warn('Poucas palavras carregadas:', solutionPool.length);
