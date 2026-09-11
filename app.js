@@ -64,7 +64,7 @@
 
   let persistent = loadPersistent();
   let game = null;
-  let input = '';
+  let input = Array(5).fill('');
   let cursorPos = 0;
   let locked = false;
   let messageTimer = null;
@@ -112,7 +112,7 @@
       solvedAt: Array.from({ length: mode.boards }, () => null),
       finished: false
     };
-    input = '';
+    input = Array(5).fill('');
     cursorPos = 0;
     locked = false;
     modeTitleEl.textContent = mode.name;
@@ -185,7 +185,7 @@
             tile.classList.add('editable');
             tile.addEventListener('click', () => {
               if (locked) return;
-              cursorPos = Math.min(col, input.length);
+              cursorPos = col;
               renderBoards();
             });
           }
@@ -297,47 +297,37 @@
       return renderBoards();
     }
     if (key === 'ARROWRIGHT') {
-      cursorPos = Math.min(input.length, cursorPos + 1);
+      cursorPos = Math.min(4, cursorPos + 1);
       return renderBoards();
     }
     if (key === 'DELETE') {
-      if (cursorPos < input.length) {
-        input = input.slice(0, cursorPos) + input.slice(cursorPos + 1);
-        renderBoards();
-      }
-      return;
+      input[cursorPos] = '';
+      return renderBoards();
     }
     if (key === 'BACKSPACE') {
-      if (cursorPos > 0) {
-        input = input.slice(0, cursorPos - 1) + input.slice(cursorPos);
+      if (input[cursorPos]) {
+        input[cursorPos] = '';
+      } else if (cursorPos > 0) {
         cursorPos--;
-      } else if (input.length) {
-        input = input.slice(0, -1);
-        cursorPos = input.length;
+        input[cursorPos] = '';
       }
       return renderBoards();
     }
 
     if (/^[A-Z]$/.test(key)) {
-      const letter = key.toLowerCase();
-      if (input.length < 5) {
-        input = input.slice(0, cursorPos) + letter + input.slice(cursorPos);
-        cursorPos++;
-      } else if (cursorPos < 5) {
-        input = input.slice(0, cursorPos) + letter + input.slice(cursorPos + 1);
-        cursorPos = Math.min(5, cursorPos + 1);
-      }
+      input[cursorPos] = key.toLowerCase();
+      if (cursorPos < 4) cursorPos++;
       renderBoards();
     }
   }
 
   async function submitGuess() {
-    if (input.length !== 5) {
+    if (input.some(char => !char)) {
       shakeCurrentRows();
-      return showMessage('Só palavras com 5 letras');
+      return showMessage('Preencha as 5 letras');
     }
 
-    const normalizedInput = normalize(input);
+    const normalizedInput = normalize(input.join(''));
     if (!validGuesses.has(normalizedInput)) {
       shakeCurrentRows();
       return showMessage('Palavra não reconhecida');
@@ -361,7 +351,7 @@
       }
     }
 
-    input = '';
+    input = Array(5).fill('');
     cursorPos = 0;
     renderBoards();
     renderSidebar();
@@ -507,7 +497,7 @@
         <div class="legend-row"><span class="legend-tile absent">G</span><span>Letra que não faz parte da palavra.</span></div>
       </div>
       <p><strong>Ciclo infinito:</strong> TERMO (6) → DUPLO (7) → TRIPLO (8) → QUARTETO (9) → TERMO...</p>
-      <p>Use ← e → para mover o cursor entre as letras da tentativa atual. Também dá para clicar diretamente em uma casa.</p>
+      <p>Use ← e → para andar livremente pelas 5 casas, mesmo vazias. Também dá para clicar diretamente em qualquer casa e digitar nela.</p>
       <p>A pontuação e a sequência ficam salvas neste navegador. Acentos não alteram as dicas.</p>
     `;
     openModal();
