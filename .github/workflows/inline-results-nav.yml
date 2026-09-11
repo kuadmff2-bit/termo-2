@@ -1,0 +1,215 @@
+name: Atualizar resultado inline e navegacao
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/inline-results-nav.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Aplicar mudancas
+        shell: python
+        run: |
+          from pathlib import Path
+
+          app_path = Path('app.js')
+          app = app_path.read_text(encoding='utf-8')
+
+          app = app.replace(
+              "  const modeTitleEl = document.getElementById('modeTitle');\n",
+              "  const modeTitleEl = document.getElementById('modeTitle');\n  const prevModeBtn = document.getElementById('prevModeBtn');\n  const nextModeBtn = document.getElementById('nextModeBtn');\n  const roundResultEl = document.getElementById('roundResult');\n"
+          )
+
+          app = app.replace(
+              "    modeTitleEl.textContent = mode.name;\n    renderAll();",
+              "    modeTitleEl.textContent = mode.name;\n    roundResultEl.classList.add('hidden');\n    roundResultEl.innerHTML = '';\n    keyboardEl.classList.remove('hidden');\n    renderAll();"
+          )
+
+          marker = "      board.dataset.board = boardIndex;\n      board.setAttribute('aria-label', `Tabuleiro ${boardIndex + 1}`);\n\n"
+          replacement = marker + "      if (game.finished) {\n        const reveal = document.createElement('div');\n        const solved = game.solved[boardIndex];\n        reveal.className = `board-answer-reveal ${solved ? 'answer-ok' : 'answer-miss'}`;\n\n        const label = document.createElement('span');\n        label.className = 'board-answer-label';\n        label.textContent = solved ? 'ACERTOU' : 'PALAVRA CERTA';\n        reveal.appendChild(label);\n\n        const word = document.createElement('div');\n        word.className = 'board-answer-word';\n        [...game.solutions[boardIndex].toUpperCase()].forEach((letter, index) => {\n          const piece = document.createElement('span');\n          piece.textContent = letter;\n          piece.style.animationDelay = `${index * 240}ms`;\n          word.appendChild(piece);\n        });\n        reveal.appendChild(word);\n        board.appendChild(reveal);\n      }\n\n"
+          if marker not in app:
+              raise SystemExit('Marcador do tabuleiro nao encontrado')
+          app = app.replace(marker, replacement, 1)
+
+          app = app.replace(
+              "    renderBoards();\n    showResultModal(gained, perfect);",
+              "    renderBoards();\n    showInlineResult(gained, perfect);"
+          )
+
+          advance_marker = "  function advanceMode() {\n"
+          inline_functions = "  function showInlineResult(gained, perfect) {\n    const nextMode = MODES[(persistent.modeIndex + 1) % MODES.length];\n    keyboardEl.classList.add('hidden');\n    roundResultEl.innerHTML = `\n      <div class=\"round-result-score\">\n        <span>PONTOS NESTA RODADA</span>\n        <strong>+${gained}</strong>\n        <small>Total: ${persistent.score.toLocaleString('pt-BR')}</small>\n      </div>\n      <button class=\"round-continue-btn\" id=\"inlineContinueBtn\" type=\"button\">Jogar ${nextMode.name}</button>\n    `;\n    roundResultEl.classList.remove('hidden');\n    roundResultEl.classList.remove('result-enter');\n    void roundResultEl.offsetWidth;\n    roundResultEl.classList.add('result-enter');\n    document.getElementById('inlineContinueBtn').addEventListener('click', advanceMode);\n  }\n\n  function switchMode(delta) {\n    if (locked && !game?.finished) return;\n    persistent.modeIndex = (persistent.modeIndex + delta + MODES.length) % MODES.length;\n    savePersistent();\n    forceCloseModal();\n    newGame();\n  }\n\n"
+          if advance_marker not in app:
+              raise SystemExit('advanceMode nao encontrado')
+          app = app.replace(advance_marker, inline_functions + advance_marker, 1)
+
+          event_marker = "  document.getElementById('helpBtn').addEventListener('click', showHelp);\n"
+          event_replacement = "  prevModeBtn.addEventListener('click', () => switchMode(-1));\n  nextModeBtn.addEventListener('click', () => switchMode(1));\n" + event_marker
+          if event_marker not in app:
+              raise SystemExit('Eventos nao encontrados')
+          app = app.replace(event_marker, event_replacement, 1)
+
+          app_path.write_text(app, encoding='utf-8')
+
+          index_path = Path('index.html')
+          index = index_path.read_text(encoding='utf-8')
+          index = index.replace('pointer-events:none;', 'pointer-events:auto;', 1)
+          old_brand = "      <div class=\"brand-wrap\">\n        <h1 id=\"modeTitle\">TERMO</h1>\n        <div class=\"infinity\">∞</div>\n      </div>"
+          new_brand = "      <div class=\"brand-wrap\">\n        <button class=\"mode-arrow\" id=\"prevModeBtn\" type=\"button\" aria-label=\"Modo anterior\">‹</button>\n        <h1 id=\"modeTitle\">TERMO</h1>\n        <div class=\"infinity\">∞</div>\n        <button class=\"mode-arrow\" id=\"nextModeBtn\" type=\"button\" aria-label=\"Próximo modo\">›</button>\n      </div>"
+          if old_brand not in index:
+              raise SystemExit('Brand nao encontrada')
+          index = index.replace(old_brand, new_brand, 1)
+
+          old_boards = "    <section id=\"boards\" class=\"boards boards-1\" aria-label=\"Tabuleiros\"></section>\n    <section class=\"keyboard\" id=\"keyboard\" aria-label=\"Teclado virtual\"></section>"
+          new_boards = "    <section id=\"boards\" class=\"boards boards-1\" aria-label=\"Tabuleiros\"></section>\n    <section id=\"roundResult\" class=\"round-result hidden\" aria-live=\"polite\"></section>\n    <section class=\"keyboard\" id=\"keyboard\" aria-label=\"Teclado virtual\"></section>"
+          if old_boards not in index:
+              raise SystemExit('Area de tabuleiro nao encontrada')
+          index = index.replace(old_boards, new_boards, 1)
+          index = index.replace('20260911-2307', '20260911-2315')
+          index_path.write_text(index, encoding='utf-8')
+
+          css_path = Path('styles.css')
+          css = css_path.read_text(encoding='utf-8')
+          css += r'''
+
+/* Navegação de modos no topo */
+.mode-arrow {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: #dce2ec;
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  transition: background .16s ease, transform .12s ease, color .16s ease;
+}
+.mode-arrow:hover { background: rgba(255,255,255,.07); color: #fff; }
+.mode-arrow:active { transform: scale(.9); }
+
+/* Resposta revelada diretamente sobre cada tabuleiro */
+.board-answer-reveal {
+  min-height: 61px;
+  margin-bottom: 7px;
+  padding: 8px 10px 9px;
+  border-radius: 10px;
+  display: grid;
+  gap: 5px;
+  justify-items: center;
+  overflow: hidden;
+  color: #fff;
+}
+.board-answer-reveal.answer-miss {
+  background: #b9434b;
+  border: 1px solid #d96067;
+}
+.board-answer-reveal.answer-ok {
+  background: #237f70;
+  border: 1px solid #36a593;
+}
+.board-answer-label {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .16em;
+  color: rgba(255,255,255,.78);
+}
+.board-answer-word {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  font-size: clamp(19px, 3.2vmin, 27px);
+  font-weight: 800;
+  letter-spacing: .04em;
+}
+.board-answer-word > span {
+  min-width: .8em;
+  opacity: 0;
+  transform: translateY(-8px) rotateX(-70deg);
+  animation: reveal-answer-letter .9s cubic-bezier(.2,.8,.2,1) forwards;
+}
+
+.round-result {
+  width: min(100%, 470px);
+  margin: 10px auto 22px;
+  display: grid;
+  grid-template-columns: 1fr 1.35fr;
+  gap: 10px;
+  align-items: stretch;
+}
+.round-result.result-enter {
+  animation: round-result-enter .42s ease 1.55s both;
+}
+.round-result-score {
+  min-height: 67px;
+  padding: 9px 14px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 11px;
+  background: #1b1f27;
+  display: grid;
+  place-items: center;
+  align-content: center;
+}
+.round-result-score span {
+  color: #8f98a8;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .13em;
+}
+.round-result-score strong { font-size: 24px; line-height: 1.05; }
+.round-result-score small { color: #8f98a8; font-size: 9px; }
+.round-continue-btn {
+  min-height: 67px;
+  border: 0;
+  border-radius: 11px;
+  background: var(--correct);
+  color: white;
+  font-weight: 800;
+  font-size: 15px;
+  cursor: pointer;
+}
+.round-continue-btn:hover { filter: brightness(1.08); }
+
+@keyframes reveal-answer-letter {
+  0% { opacity: 0; transform: translateY(-8px) rotateX(-70deg); }
+  48% { opacity: .45; }
+  100% { opacity: 1; transform: translateY(0) rotateX(0); }
+}
+@keyframes round-result-enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 760px) {
+  .mode-arrow { width: 29px; height: 29px; font-size: 26px; }
+  .brand-wrap { gap: 2px !important; }
+  .board-answer-reveal { min-height: 50px; padding: 6px 7px; }
+  .round-result { grid-template-columns: 1fr; width: min(100%, 350px); margin-bottom: 15px; }
+  .round-result-score, .round-continue-btn { min-height: 54px; }
+}
+'''
+          css_path.write_text(css, encoding='utf-8')
+
+      - name: Validar JavaScript
+        run: node --check app.js
+
+      - name: Salvar
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.js index.html styles.css
+          git commit -m "Resultado inline, revelacao lenta e setas de modo [skip ci]"
+          git pull --rebase origin main
+          git push origin main
