@@ -1,0 +1,36 @@
+name: Cursor circular nas caixas
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/circular-cursor-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Ajustar cursor
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('app.js')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace("cursorPos = Math.max(0, cursorPos - 1);", "cursorPos = (cursorPos + 4) % 5;")
+          s = s.replace("cursorPos = Math.min(4, cursorPos + 1);", "cursorPos = (cursorPos + 1) % 5;")
+          s = s.replace("if (cursorPos < 4) cursorPos++;", "cursorPos = (cursorPos + 1) % 5;")
+          p.write_text(s, encoding='utf-8')
+      - name: Salvar
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.js
+          git commit -m "Faz cursor circular nas caixas" || exit 0
+          git pull --rebase origin main
+          git push origin main
