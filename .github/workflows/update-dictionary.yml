@@ -1,0 +1,106 @@
+name: Atualizar dicionário PT-BR
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/update-dictionary.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build-dictionary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+
+      - name: Gerar lista ampla de palavras de 5 letras
+        shell: python
+        run: |
+          import json
+          import pathlib
+          import re
+          import unicodedata
+          import urllib.request
+
+          SOURCES = [
+              # fserb/pt-br — MIT
+              'https://raw.githubusercontent.com/fserb/pt-br/master/lexico',
+              'https://raw.githubusercontent.com/fserb/pt-br/master/conjuga%C3%A7%C3%B5es',
+              'https://raw.githubusercontent.com/fserb/pt-br/master/icf',
+              # pythonprobr/palavras — derivado do dicionário pt-BR do LibreOffice (MPL-2.0)
+              'https://raw.githubusercontent.com/pythonprobr/palavras/master/palavras.txt',
+          ]
+
+          TOKEN = re.compile(r"[A-Za-zÀ-ÖØ-öø-ÿ]+", re.UNICODE)
+
+          def normalize(word: str) -> str:
+              return ''.join(
+                  ch for ch in unicodedata.normalize('NFD', word.lower())
+                  if unicodedata.category(ch) != 'Mn'
+              ).replace('ç', 'c')
+
+          canonical = {}
+          source_counts = {}
+
+          for url in SOURCES:
+              print(f'Baixando {url}')
+              request = urllib.request.Request(url, headers={'User-Agent': 'termo-infinito-dictionary-builder'})
+              with urllib.request.urlopen(request, timeout=120) as response:
+                  text = response.read().decode('utf-8', errors='ignore')
+
+              before = len(canonical)
+              for line in text.splitlines():
+                  for candidate in TOKEN.findall(line):
+                      word = candidate.strip().lower()
+                      key = normalize(word)
+                      if len(key) != 5:
+                          continue
+                      if not key.isascii() or not key.isalpha():
+                          continue
+
+                      current = canonical.get(key)
+                      # Quando houver forma acentuada e não acentuada da mesma palavra,
+                      # preferimos preservar a grafia acentuada para a revelação.
+                      has_marks = word != key
+                      current_has_marks = current is not None and current != normalize(current)
+                      if current is None or (has_marks and not current_has_marks):
+                          canonical[key] = word
+
+              source_counts[url] = len(canonical) - before
+
+          words = [canonical[key] for key in sorted(canonical)]
+
+          header = (
+              '// GERADO AUTOMATICAMENTE. NÃO EDITE MANUALMENTE.\n'
+              '// Fontes abertas: fserb/pt-br (MIT) e pythonprobr/palavras / LibreOffice pt-BR (MPL-2.0).\n'
+              f'// Total de formas únicas normalizadas com 5 letras: {len(words)}\n'
+          )
+          payload = 'window.TERMO_ALL_WORDS=' + json.dumps(words, ensure_ascii=False, separators=(',', ':')) + ';\n'
+          pathlib.Path('all-words.js').write_text(header + payload, encoding='utf-8')
+
+          stats = {
+              'total': len(words),
+              'sources': source_counts,
+          }
+          pathlib.Path('dictionary-stats.json').write_text(
+              json.dumps(stats, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8'
+          )
+
+          print(f'Total final: {len(words)} palavras de 5 letras')
+
+      - name: Salvar dicionário no repositório
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add all-words.js dictionary-stats.json
+          if git diff --cached --quiet; then
+            echo "Dicionário já está atualizado."
+            exit 0
+          fi
+          git commit -m "Atualiza dicionário completo de 5 letras [skip ci]"
+          git push
