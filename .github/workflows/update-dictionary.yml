@@ -33,10 +33,16 @@ jobs:
             -o pt_BR.dic \
             https://raw.githubusercontent.com/LibreOffice/dictionaries/master/pt_BR/pt_BR.dic
 
-      - name: Expandir flexões do Hunspell
+      - name: Expandir e filtrar flexões de 5 letras
         run: |
-          unmunch pt_BR.dic pt_BR.aff > hunspell-expanded.txt 2>hunspell-warnings.log || true
-          echo "Formas geradas pelo Hunspell: $(wc -l < hunspell-expanded.txt)"
+          # O Hunspell chega a produzir dezenas de milhões de formas. Filtramos
+          # durante o próprio pipeline para não salvar/processar tudo depois.
+          set +e
+          unmunch pt_BR.dic pt_BR.aff 2>hunspell-warnings.log \
+            | LC_ALL=C.UTF-8 grep -E '^[[:alpha:]]{5}$' \
+            | sort -u > hunspell-5.txt
+          set -e
+          echo "Formas Hunspell de 5 letras: $(wc -l < hunspell-5.txt)"
 
       - name: Gerar lista ampla de palavras de 5 letras
         shell: python
@@ -107,13 +113,11 @@ jobs:
           source_counts['LibreOffice pt_BR.dic (raízes)'] = len(canonical) - before
 
           before = len(canonical)
-          expanded_path = pathlib.Path('hunspell-expanded.txt')
+          expanded_path = pathlib.Path('hunspell-5.txt')
           if expanded_path.exists():
               with expanded_path.open('r', encoding='utf-8', errors='ignore') as handle:
                   for line in handle:
-                      match = TOKEN.search(line)
-                      if match:
-                          add_word(match.group(0))
+                      add_word(line)
           source_counts['LibreOffice + Hunspell (flexões)'] = len(canonical) - before
 
           before = len(canonical)
