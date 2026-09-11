@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260911-2256" />
+  <link rel="stylesheet" href="styles.css?v=20260911-2302" />
   <style>
     .app-shell{
       width:min(100%,1060px);
@@ -21,7 +21,8 @@
 
     .topbar{
       height:48px;
-      grid-template-columns:44px 1fr 44px;
+      position:relative;
+      display:block;
     }
     .corner-brand{
       position:fixed;
@@ -35,10 +36,22 @@
       color:#f5f7fb;
       user-select:none;
     }
-    .brand-wrap{gap:5px}
-    .brand-wrap h1{font-size:clamp(21px,3vw,29px)}
+    .brand-wrap{
+      position:fixed;
+      z-index:24;
+      left:50%;
+      top:9px;
+      transform:translateX(-50%);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:5px;
+      white-space:nowrap;
+      pointer-events:none;
+    }
+    .brand-wrap h1{font-size:clamp(21px,3vw,29px);margin:0}
     .infinity{font-size:23px}
-    .topbar .icon-btn{width:34px;height:34px;font-size:17px;border-radius:8px}
+    #statsBtn{display:none!important}
 
     .side-panel.stats-panel{
       display:block;
@@ -109,19 +122,16 @@
         width:100%;
         grid-template-rows:44px auto 22px auto auto;
       }
-      .topbar{
-        height:44px;
-        grid-template-columns:36px 1fr 36px;
-      }
+      .topbar{height:44px}
       .corner-brand{
         left:7px;
         top:12px;
         font-size:20px;
         letter-spacing:.08em;
       }
+      .brand-wrap{top:11px}
       .brand-wrap h1{font-size:20px}
       .infinity{font-size:19px}
-      .topbar .icon-btn{width:30px;height:30px;font-size:15px}
       .boards{column-gap:12px;row-gap:14px}
       .boards-2,.boards-4{column-gap:14px}
       .boards-3{column-gap:7px}
@@ -167,12 +177,12 @@
     </section>
   </div>
 
-  <script src="words.js?v=20260911-2256"></script>
-  <script src="extra-words.js?v=20260911-2256"></script>
-  <script src="all-words.js?v=20260911-2256"></script>
-  <script src="common-br.js?v=20260911-2256"></script>
-  <script src="dictionary-bridge.js?v=20260911-2256"></script>
-  <script src="guess-bridge.js?v=20260911-2256"></script>
-  <script src="app.js?v=20260911-2256"></script>
+  <script src="words.js?v=20260911-2302"></script>
+  <script src="extra-words.js?v=20260911-2302"></script>
+  <script src="all-words.js?v=20260911-2302"></script>
+  <script src="common-br.js?v=20260911-2302"></script>
+  <script src="dictionary-bridge.js?v=20260911-2302"></script>
+  <script src="guess-bridge.js?v=20260911-2302"></script>
+  <script src="app.js?v=20260911-2302"></script>
 </body>
 </html>
