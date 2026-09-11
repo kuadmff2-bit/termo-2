@@ -1,9 +1,15 @@
 {
-  "total": 15171,
+  "total": 22969,
   "sources": {
     "https://raw.githubusercontent.com/fserb/pt-br/master/lexico": 6046,
     "https://raw.githubusercontent.com/fserb/pt-br/master/conjuga%C3%A7%C3%B5es": 2582,
     "https://raw.githubusercontent.com/fserb/pt-br/master/icf": 2674,
-    "https://raw.githubusercontent.com/pythonprobr/palavras/master/palavras.txt": 3869
+    "https://raw.githubusercontent.com/pythonprobr/palavras/master/palavras.txt": 3869,
+    "LibreOffice pt_BR.dic (raízes)": 0,
+    "LibreOffice + Hunspell (flexões)": 7798,
+    "garantidas": 0
+  },
+  "checks": {
+    "surfa": true
   }
 }
