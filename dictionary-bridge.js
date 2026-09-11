@@ -5,27 +5,25 @@
   const expanded = Array.isArray(window.TERMO_ALL_WORDS) ? window.TERMO_ALL_WORDS : [];
   const commonBR = Array.isArray(window.TERMO_COMMON_BR) ? window.TERMO_COMMON_BR : local;
 
-  const seen = new Set();
-  const merged = [];
+  const mergeUnique = (lists) => {
+    const seen = new Set();
+    const result = [];
+    for (const raw of lists.flat()) {
+      const word = String(raw || '').trim().toLowerCase();
+      if (!word || seen.has(word)) continue;
+      seen.add(word);
+      result.push(word);
+    }
+    return result;
+  };
 
-  for (const raw of [...local, ...expanded]) {
-    const word = String(raw || '').trim().toLowerCase();
-    if (!word || seen.has(word)) continue;
-    seen.add(word);
-    merged.push(word);
-  }
+  const solutions = mergeUnique([commonBR]);
+  const validWords = mergeUnique([local, expanded, commonBR]);
 
-  const solutionSeen = new Set();
-  const solutions = [];
-  for (const raw of commonBR) {
-    const word = String(raw || '').trim().toLowerCase();
-    if (!word || solutionSeen.has(word)) continue;
-    solutionSeen.add(word);
-    solutions.push(word);
-  }
-
-  window.TERMO_WORDS = merged;
-  window.TERMO_SOLUTION_WORDS = solutions;
-  window.TERMO_DICTIONARY_SIZE = merged.length;
+  // app.js usa TERMO_WORDS para montar as respostas.
+  window.TERMO_WORDS = solutions;
+  // O catálogo grande fica separado e é injetado somente na validação dos palpites.
+  window.TERMO_VALID_WORDS = validWords;
+  window.TERMO_DICTIONARY_SIZE = validWords.length;
   window.TERMO_SOLUTION_SIZE = solutions.length;
 })();
