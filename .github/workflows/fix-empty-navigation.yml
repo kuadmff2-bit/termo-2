@@ -1,0 +1,62 @@
+name: Corrigir navegação entre casas vazias
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Aplicar correção no app.js
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('app.js')
+          text = path.read_text(encoding='utf-8')
+
+          replacements = [
+              ("let input = '';", "let input = Array(5).fill('');"),
+              ("    input = '';\n    cursorPos = 0;", "    input = Array(5).fill('');\n    cursorPos = 0;"),
+              ("              cursorPos = Math.min(col, input.length);", "              cursorPos = col;"),
+              ("      cursorPos = Math.min(input.length, cursorPos + 1);", "      cursorPos = Math.min(4, cursorPos + 1);"),
+              ("    if (key === 'DELETE') {\n      if (cursorPos < input.length) {\n        input = input.slice(0, cursorPos) + input.slice(cursorPos + 1);\n        renderBoards();\n      }\n      return;\n    }", "    if (key === 'DELETE') {\n      input[cursorPos] = '';\n      return renderBoards();\n    }"),
+              ("    if (key === 'BACKSPACE') {\n      if (cursorPos > 0) {\n        input = input.slice(0, cursorPos - 1) + input.slice(cursorPos);\n        cursorPos--;\n      } else if (input.length) {\n        input = input.slice(0, -1);\n        cursorPos = input.length;\n      }\n      return renderBoards();\n    }", "    if (key === 'BACKSPACE') {\n      if (input[cursorPos]) {\n        input[cursorPos] = '';\n      } else if (cursorPos > 0) {\n        cursorPos--;\n        input[cursorPos] = '';\n      }\n      return renderBoards();\n    }"),
+              ("    if (/^[A-Z]$/.test(key)) {\n      const letter = key.toLowerCase();\n      if (input.length < 5) {\n        input = input.slice(0, cursorPos) + letter + input.slice(cursorPos);\n        cursorPos++;\n      } else if (cursorPos < 5) {\n        input = input.slice(0, cursorPos) + letter + input.slice(cursorPos + 1);\n        cursorPos = Math.min(5, cursorPos + 1);\n      }\n      renderBoards();\n    }", "    if (/^[A-Z]$/.test(key)) {\n      input[cursorPos] = key.toLowerCase();\n      if (cursorPos < 4) cursorPos++;\n      renderBoards();\n    }"),
+              ("    if (input.length !== 5) {\n      shakeCurrentRows();\n      return showMessage('Só palavras com 5 letras');\n    }", "    if (input.some(char => !char)) {\n      shakeCurrentRows();\n      return showMessage('Preencha as 5 letras');\n    }"),
+              ("    const normalizedInput = normalize(input);", "    const normalizedInput = normalize(input.join(''));"),
+              ("    input = '';\n    cursorPos = 0;\n    renderBoards();", "    input = Array(5).fill('');\n    cursorPos = 0;\n    renderBoards();"),
+              ("Use ← e → para mover o cursor entre as letras da tentativa atual. Também dá para clicar diretamente em uma casa.", "Use ← e → para andar livremente pelas 5 casas, mesmo vazias. Também dá para clicar diretamente em qualquer casa e digitar nela.")
+          ]
+
+          changed = False
+          for old, new in replacements:
+              if old in text:
+                  text = text.replace(old, new)
+                  changed = True
+
+          if changed:
+              path.write_text(text, encoding='utf-8')
+
+      - name: Validar JavaScript
+        run: node --check app.js
+
+      - name: Salvar correção
+        run: |
+          if git diff --quiet -- app.js; then
+            echo "Correção já aplicada."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.js
+          git commit -m "Permite navegar e editar casas vazias"
+          git push
