@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260911-2317" />
+  <link rel="stylesheet" href="styles.css?v=20260911-2318" />
   <style>
     .app-shell{
       width:min(100%,1060px);
@@ -53,42 +53,58 @@
     .infinity{font-size:23px}
     #statsBtn{display:none!important}
 
+    /* Placar lateral menor para liberar mais espaço para os tabuleiros. */
     .side-panel.stats-panel{
       display:block;
       position:fixed;
       z-index:20;
-      left:max(24px,calc(50vw - 760px));
+      left:max(18px,calc(50vw - 760px));
       top:50%;
       transform:translateY(-50%);
-      width:210px;
-      padding:12px;
-      border-radius:16px;
+      width:165px;
+      padding:7px;
+      border-radius:13px;
       border:1px solid rgba(255,255,255,.08);
       background:rgba(23,26,33,.94);
-      box-shadow:0 20px 50px rgba(0,0,0,.28);
+      box-shadow:0 16px 38px rgba(0,0,0,.24);
       backdrop-filter:blur(14px);
     }
     .stats-panel .scorebar{
       width:100%;
       margin:0;
       grid-template-columns:1fr;
-      border-radius:11px;
+      border-radius:9px;
       box-shadow:none;
       background:transparent;
     }
     .stats-panel .scorebar>div{
-      padding:15px 10px;
+      padding:10px 6px;
       border-right:0;
       border-bottom:1px solid rgba(255,255,255,.08);
     }
     .stats-panel .scorebar>div:last-child{border-bottom:0}
-    .stats-panel .scorebar .label{font-size:9px;margin-bottom:5px}
-    .stats-panel .scorebar strong{font-size:22px}
+    .stats-panel .scorebar .label{font-size:8px;margin-bottom:3px}
+    .stats-panel .scorebar strong{font-size:18px}
 
     .boards{column-gap:42px;row-gap:24px}
     .boards-2{column-gap:68px}
     .boards-3{column-gap:38px}
-    .boards-4{column-gap:58px;row-gap:30px}
+
+    /* QUARTETO precisa caber inteiro junto com o teclado. */
+    .boards-4{
+      grid-template-columns:repeat(2,145px);
+      column-gap:74px;
+      row-gap:18px;
+      align-content:center;
+      padding:5px 0 7px;
+    }
+    .boards-4 .board{gap:3px}
+    .boards-4 .row{gap:3px}
+    .boards-4 .tile{
+      border-width:2px;
+      border-radius:4px;
+      font-size:clamp(14px,2.2vmin,19px);
+    }
 
     @media(max-width:1200px){
       .app-shell{
@@ -99,8 +115,8 @@
         display:block;
         position:static;
         transform:none;
-        width:min(100%,560px);
-        margin:5px auto 0;
+        width:min(100%,500px);
+        margin:4px auto 0;
         padding:0;
         border:0;
         background:transparent;
@@ -108,13 +124,13 @@
         backdrop-filter:none;
       }
       .stats-panel .scorebar{grid-template-columns:repeat(3,1fr);background:rgba(255,255,255,.035)}
-      .stats-panel .scorebar>div{padding:6px 8px;border-bottom:0;border-right:1px solid rgba(255,255,255,.08)}
+      .stats-panel .scorebar>div{padding:5px 7px;border-bottom:0;border-right:1px solid rgba(255,255,255,.08)}
       .stats-panel .scorebar>div:last-child{border-right:0}
       .stats-panel .scorebar .label{margin-bottom:1px}
       .stats-panel .scorebar strong{font-size:13px}
       .boards-2{column-gap:46px}
       .boards-3{column-gap:24px}
-      .boards-4{column-gap:42px;row-gap:24px}
+      .boards-4{grid-template-columns:repeat(2,138px);column-gap:42px;row-gap:16px}
     }
 
     @media(max-width:760px){
@@ -133,8 +149,12 @@
       .brand-wrap h1{font-size:20px}
       .infinity{font-size:19px}
       .boards{column-gap:12px;row-gap:14px}
-      .boards-2,.boards-4{column-gap:14px}
+      .boards-2{column-gap:14px}
       .boards-3{column-gap:7px}
+      .boards-4{grid-template-columns:repeat(2,124px);column-gap:13px;row-gap:12px}
+      .boards-4 .board{gap:2px}
+      .boards-4 .row{gap:2px}
+      .boards-4 .tile{border-width:2px;font-size:14px}
     }
   </style>
 </head>
@@ -177,13 +197,13 @@
     </section>
   </div>
 
-  <script src="words.js?v=20260911-2317"></script>
-  <script src="extra-words.js?v=20260911-2317"></script>
-  <script src="all-words.js?v=20260911-2317"></script>
-  <script src="common-br.js?v=20260911-2317"></script>
-  <script src="dictionary-bridge.js?v=20260911-2317"></script>
-  <script src="guess-bridge.js?v=20260911-2317"></script>
-  <script src="app.js?v=20260911-2317"></script>
-  <script src="ui-enhancements.js?v=20260911-2317"></script>
+  <script src="words.js?v=20260911-2318"></script>
+  <script src="extra-words.js?v=20260911-2318"></script>
+  <script src="all-words.js?v=20260911-2318"></script>
+  <script src="common-br.js?v=20260911-2318"></script>
+  <script src="dictionary-bridge.js?v=20260911-2318"></script>
+  <script src="guess-bridge.js?v=20260911-2318"></script>
+  <script src="app.js?v=20260911-2318"></script>
+  <script src="ui-enhancements.js?v=20260911-2318"></script>
 </body>
 </html>
