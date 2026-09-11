@@ -12,7 +12,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260911-2235" />
+  <link rel="stylesheet" href="styles.css?v=20260911-2238" />
+  <style>
+    .app-shell{grid-template-rows:68px auto 30px minmax(0,1fr) 38px auto}
+    .cursor-nav{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 auto 4px}
+    .cursor-nav button{width:54px;height:32px;border:1px solid #3a404c;border-radius:8px;background:#20242c;color:#f5f7fb;font-weight:800;font-size:18px;cursor:pointer}
+    .cursor-nav button:hover{background:#2a303a;border-color:#667081}
+    .cursor-nav span{font-size:10px;letter-spacing:.08em;color:#7f8898;font-weight:800}
+    @media(max-width:760px){.app-shell{grid-template-rows:58px auto 26px minmax(0,1fr) 36px auto}.cursor-nav{margin-bottom:2px}.cursor-nav button{height:30px}}
+  </style>
 </head>
 <body>
   <aside class="side-panel" id="sidePanel" aria-label="Progresso do ciclo">
@@ -53,6 +61,13 @@
 
     <div id="message" class="message" role="status" aria-live="polite"></div>
     <section id="boards" class="boards boards-1" aria-label="Tabuleiros"></section>
+
+    <div class="cursor-nav" aria-label="Mover entre as caixas">
+      <button type="button" aria-label="Mover para a caixa anterior" onclick="document.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowLeft',bubbles:true}))">←</button>
+      <span>MOVER CAIXA</span>
+      <button type="button" aria-label="Mover para a próxima caixa" onclick="document.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}))">→</button>
+    </div>
+
     <section class="keyboard" id="keyboard" aria-label="Teclado virtual"></section>
   </main>
 
@@ -64,9 +79,9 @@
     </section>
   </div>
 
-  <script src="words.js?v=20260911-2235"></script>
-  <script src="all-words.js?v=20260911-2235"></script>
-  <script src="dictionary-bridge.js?v=20260911-2235"></script>
-  <script src="app.js?v=20260911-2235"></script>
+  <script src="words.js?v=20260911-2238"></script>
+  <script src="all-words.js?v=20260911-2238"></script>
+  <script src="dictionary-bridge.js?v=20260911-2238"></script>
+  <script src="app.js?v=20260911-2238"></script>
 </body>
 </html>
