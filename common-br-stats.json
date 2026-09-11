@@ -1,10 +1,12 @@
 {
-  "solutions": 1309,
-  "guesses": 1921,
+  "solutions": 1311,
+  "guesses": 2304,
   "checks": {
     "filha_solution": true,
     "filha_guess": true,
     "surfa_guess": true,
+    "ferra_guess": true,
+    "fuzil_guess": true,
     "serta_present": false
   },
   "source": "brayanfss/wordbombdb-pt 20k.txt"
