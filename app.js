@@ -357,7 +357,7 @@
     renderSidebar();
     animateSubmittedRow(rowIndex);
     renderKeyboard();
-    await delay(440);
+    await delay(1120);
 
     if (game.solved.every(Boolean) || game.guesses.length >= game.mode.attempts) {
       finishGame();
@@ -368,7 +368,7 @@
 
   function animateSubmittedRow(rowIndex) {
     boardsEl.querySelectorAll(`.row[data-row="${rowIndex}"] .tile`).forEach((tile, i) => {
-      tile.style.animationDelay = `${i * 45}ms`;
+      tile.style.animationDelay = `${i * 105}ms`;
       tile.classList.add('flip');
     });
   }

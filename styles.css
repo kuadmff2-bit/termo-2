@@ -131,7 +131,7 @@ button { font: inherit; }
 .tile.correct { background: var(--correct); border-color: var(--correct); color: white; }
 .tile.present { background: var(--present); border-color: var(--present); color: white; }
 .tile.absent { background: var(--absent); border-color: var(--absent); color: #d7dbe2; }
-.tile.flip { animation: flip .42s ease both; }
+.tile.flip { animation: flip .70s cubic-bezier(.25,.8,.25,1) both; }
 .row.shake { animation: shake .32s ease; }
 .board.solved .tile:not(.correct):not(.present):not(.absent) { opacity: .4; }
 
