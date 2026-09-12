@@ -60,8 +60,10 @@
   const paint = () => {
     const phases = document.getElementById('scoreValue');
     const cycles = document.getElementById('cycleValue');
-    if (phases) phases.textContent = String(progress.phases || 0);
-    if (cycles) cycles.textContent = String(progress.cycles || 0);
+    const phaseText = String(progress.phases || 0);
+    const cycleText = String(progress.cycles || 0);
+    if (phases && phases.textContent !== phaseText) phases.textContent = phaseText;
+    if (cycles && cycles.textContent !== cycleText) cycles.textContent = cycleText;
   };
 
   const processFinishedGame = () => {
@@ -91,10 +93,7 @@
     paint();
   };
 
-  const observer = new MutationObserver(() => {
-    processFinishedGame();
-  });
-
+  const observer = new MutationObserver(processFinishedGame);
   observer.observe(document.documentElement, {
     childList: true,
     subtree: true,
