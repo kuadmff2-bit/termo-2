@@ -1,0 +1,80 @@
+name: Atualizar blacklist de nomes
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/build-names-blacklist.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build-names:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gerar lista de prenomes de 5 letras
+        shell: python
+        run: |
+          import csv
+          import io
+          import json
+          import unicodedata
+          import urllib.request
+
+          urls = [
+              'https://raw.githubusercontent.com/MedidaSP/nomes-brasileiros-ibge/master/ibge-mas-10000.csv',
+              'https://raw.githubusercontent.com/MedidaSP/nomes-brasileiros-ibge/master/ibge-fem-10000.csv',
+          ]
+
+          def normalize(value):
+              return ''.join(
+                  ch for ch in unicodedata.normalize('NFD', str(value).lower())
+                  if unicodedata.category(ch) != 'Mn'
+              ).replace('ç', 'c')
+
+          names = set()
+          for url in urls:
+              data = urllib.request.urlopen(url, timeout=30).read().decode('utf-8-sig')
+              for row in csv.DictReader(io.StringIO(data)):
+                  raw = (row.get('nome') or '').strip()
+                  word = normalize(raw)
+                  try:
+                      freq = int(row.get('freq') or 0)
+                  except ValueError:
+                      freq = 0
+                  # Nomes com ocorrência relevante no Brasil. O corte evita que
+                  # palavras comuns usadas raramente como nome contaminem o filtro.
+                  if len(word) == 5 and word.isascii() and word.isalpha() and freq >= 1000:
+                      names.add(word)
+
+          # Nomes estrangeiros/comuns que aparecem bastante em textos em português.
+          names.update({
+              'kevin','james','jason','peter','henry','dylan','ethan','logan','tyler',
+              'brian','frank','barry','craig','clark','chris','allen','allan','karen',
+              'kelly','megan','katie','kylie','sarah','susan','wayne','oscar'
+          })
+
+          payload = json.dumps(sorted(names), ensure_ascii=False, separators=(',', ':'))
+          content = "(() => {\n  'use strict';\n  window.TERMO_BANNED_NAMES = new Set(" + payload + ");\n})();\n"
+          with open('names-blacklist.js', 'w', encoding='utf-8') as f:
+              f.write(content)
+          print(f'Nomes bloqueados: {len(names)}')
+
+      - name: Salvar atualização
+        run: |
+          if git diff --quiet -- names-blacklist.js; then
+            echo 'Blacklist sem alterações.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add names-blacklist.js
+          git commit -m 'Atualiza blacklist de prenomes brasileiros'
+          git push
