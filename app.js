@@ -15,6 +15,7 @@
   ];
 
   const STORAGE_KEY = 'termo-infinito-v1';
+  const PROGRESS_VERSION = 2;
   const normalize = (value) => String(value || '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -37,9 +38,9 @@
   const boardsEl = document.getElementById('boards');
   const keyboardEl = document.getElementById('keyboard');
   const modeTitleEl = document.getElementById('modeTitle');
-  const scoreValueEl = document.getElementById('scoreValue');
+  const phasesValueEl = document.getElementById('scoreValue');
   const cycleValueEl = document.getElementById('cycleValue');
-  const streakValueEl = document.getElementById('streakValue');
+  const oldStreakValueEl = document.getElementById('streakValue');
   const messageEl = document.getElementById('message');
   const backdropEl = document.getElementById('modalBackdrop');
   const modalTitleEl = document.getElementById('modalTitle');
@@ -51,15 +52,19 @@
   const modeItems = [...document.querySelectorAll('.mode-item')];
 
   const defaultPersistent = {
-    score: 0,
-    cycle: 1,
-    streak: 0,
-    bestStreak: 0,
+    progressVersion: PROGRESS_VERSION,
+    phasesCompleted: 0,
+    cycle: 0,
+    cycleProgress: [false, false, false, false],
+    modeIndex: 0,
+    recentSolutions: [],
+    currentGame: null,
     games: 0,
     boardsSolved: 0,
     perfectRounds: 0,
-    modeIndex: 0,
-    recentSolutions: []
+    streak: 0,
+    bestStreak: 0,
+    score: 0
   };
 
   let persistent = loadPersistent();
@@ -69,17 +74,150 @@
   let locked = false;
   let messageTimer = null;
 
+  setupProgressPanel();
+
   function loadPersistent() {
     try {
       const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY));
-      return { ...defaultPersistent, ...(parsed || {}) };
+      if (!parsed) return { ...defaultPersistent, cycleProgress: [...defaultPersistent.cycleProgress] };
+
+      const migrated = { ...defaultPersistent, ...parsed };
+      if (parsed.progressVersion !== PROGRESS_VERSION) {
+        migrated.progressVersion = PROGRESS_VERSION;
+        migrated.phasesCompleted = Number.isFinite(parsed.games) ? parsed.games : 0;
+        migrated.cycle = Math.max(0, (Number(parsed.cycle) || 1) - 1);
+        migrated.cycleProgress = [false, false, false, false];
+        migrated.currentGame = null;
+      }
+      if (!Array.isArray(migrated.cycleProgress) || migrated.cycleProgress.length !== 4) {
+        migrated.cycleProgress = [false, false, false, false];
+      }
+      migrated.phasesCompleted = Math.max(0, Number(migrated.phasesCompleted) || 0);
+      migrated.cycle = Math.max(0, Number(migrated.cycle) || 0);
+      migrated.modeIndex = Math.max(0, Math.min(3, Number(migrated.modeIndex) || 0));
+      return migrated;
     } catch {
-      return { ...defaultPersistent };
+      return { ...defaultPersistent, cycleProgress: [...defaultPersistent.cycleProgress] };
     }
   }
 
   function savePersistent() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(persistent));
+  }
+
+  function setupProgressPanel() {
+    const scorebar = document.querySelector('.stats-panel .scorebar');
+    if (!scorebar) return;
+
+    const items = [...scorebar.children];
+    if (items[0]) {
+      const label = items[0].querySelector('.label');
+      if (label) label.textContent = 'FASES CONCLUÍDAS';
+    }
+    if (items[1]) {
+      const label = items[1].querySelector('.label');
+      if (label) label.textContent = 'CICLOS';
+    }
+    if (items[2]) items[2].style.display = 'none';
+    if (oldStreakValueEl) oldStreakValueEl.textContent = '';
+
+    const style = document.createElement('style');
+    style.textContent = `
+      .stats-panel .scorebar{grid-template-columns:1fr!important}
+      .side-reset-all{
+        width:100%;margin-top:8px;padding:9px 6px;border:1px solid rgba(216,98,104,.38);
+        border-radius:9px;background:rgba(216,98,104,.08);color:#e9a0a5;font-size:10px;
+        font-weight:800;letter-spacing:.06em;cursor:pointer;
+      }
+      .side-reset-all:hover{background:rgba(216,98,104,.15);color:#fff}
+      @media(max-width:1200px){
+        .stats-panel .scorebar{grid-template-columns:repeat(2,1fr)!important}
+        .side-reset-all{width:auto;display:block;margin:6px auto 0;padding:7px 14px}
+      }
+    `;
+    document.head.appendChild(style);
+
+    if (!document.getElementById('sideResetAll')) {
+      const reset = document.createElement('button');
+      reset.id = 'sideResetAll';
+      reset.className = 'side-reset-all';
+      reset.type = 'button';
+      reset.textContent = 'ZERAR TUDO';
+      reset.addEventListener('click', resetEverything);
+      document.getElementById('sidePanel')?.appendChild(reset);
+    }
+  }
+
+  function resetEverything() {
+    if (!confirm('Zerar fases, ciclos e a partida atual?')) return;
+    persistent = { ...defaultPersistent, cycleProgress: [...defaultPersistent.cycleProgress] };
+    savePersistent();
+    forceCloseModal();
+    clearInlineResultArtifacts();
+    newGame(true);
+  }
+
+  function clearInlineResultArtifacts() {
+    document.querySelectorAll('.board-answer-reveal-ui').forEach(el => el.remove());
+    document.getElementById('roundResultUi')?.remove();
+    keyboardEl?.classList.remove('hidden');
+  }
+
+  function saveCurrentGame() {
+    if (!game) return;
+    persistent.currentGame = {
+      version: 1,
+      modeIndex: persistent.modeIndex,
+      solutions: [...game.solutions],
+      guesses: [...game.guesses],
+      results: game.results.map(rows => rows.map(row => row ? [...row] : row)),
+      solved: [...game.solved],
+      solvedAt: [...game.solvedAt],
+      finished: Boolean(game.finished),
+      completionCounted: Boolean(game.completionCounted),
+      input: [...input],
+      cursorPos
+    };
+    savePersistent();
+  }
+
+  function restoreCurrentGame() {
+    const saved = persistent.currentGame;
+    const mode = MODES[persistent.modeIndex] || MODES[0];
+    if (!saved || saved.version !== 1 || saved.modeIndex !== persistent.modeIndex) return false;
+    if (!Array.isArray(saved.solutions) || saved.solutions.length !== mode.boards) return false;
+    if (!Array.isArray(saved.guesses) || saved.guesses.length > mode.attempts) return false;
+    if (!Array.isArray(saved.results) || saved.results.length !== mode.boards) return false;
+    if (!Array.isArray(saved.solved) || saved.solved.length !== mode.boards) return false;
+    if (!Array.isArray(saved.solvedAt) || saved.solvedAt.length !== mode.boards) return false;
+
+    game = {
+      mode,
+      solutions: [...saved.solutions],
+      guesses: [...saved.guesses],
+      results: saved.results.map(rows => Array.isArray(rows) ? rows.map(row => row ? [...row] : row) : []),
+      solved: [...saved.solved],
+      solvedAt: [...saved.solvedAt],
+      finished: Boolean(saved.finished),
+      completionCounted: Boolean(saved.completionCounted)
+    };
+
+    input = Array(5).fill('');
+    if (Array.isArray(saved.input)) {
+      for (let i = 0; i < 5; i++) {
+        const value = String(saved.input[i] || '').toLowerCase();
+        if (/^[a-z]$/.test(value)) input[i] = value;
+      }
+    }
+    cursorPos = Number.isInteger(saved.cursorPos) ? Math.max(0, Math.min(4, saved.cursorPos)) : 0;
+    locked = game.finished;
+    modeTitleEl.textContent = mode.name;
+    renderAll();
+
+    if (game.finished) {
+      setTimeout(() => showResultModal(game.solved.every(Boolean)), 0);
+    }
+    return true;
   }
 
   function randomSolutions(count) {
@@ -101,8 +239,9 @@
     return selected;
   }
 
-  function newGame() {
+  function newGame(force = false) {
     const mode = MODES[persistent.modeIndex] || MODES[0];
+    if (force) persistent.currentGame = null;
     game = {
       mode,
       solutions: randomSolutions(mode.boards),
@@ -110,13 +249,15 @@
       results: Array.from({ length: mode.boards }, () => []),
       solved: Array.from({ length: mode.boards }, () => false),
       solvedAt: Array.from({ length: mode.boards }, () => null),
-      finished: false
+      finished: false,
+      completionCounted: false
     };
     input = Array(5).fill('');
     cursorPos = 0;
     locked = false;
     modeTitleEl.textContent = mode.name;
     renderAll();
+    saveCurrentGame();
   }
 
   function renderAll() {
@@ -127,9 +268,8 @@
   }
 
   function updateStatsBar() {
-    scoreValueEl.textContent = persistent.score.toLocaleString('pt-BR');
-    cycleValueEl.textContent = persistent.cycle;
-    streakValueEl.textContent = persistent.streak;
+    phasesValueEl.textContent = persistent.phasesCompleted.toLocaleString('pt-BR');
+    cycleValueEl.textContent = persistent.cycle.toLocaleString('pt-BR');
   }
 
   function renderSidebar() {
@@ -139,7 +279,7 @@
 
     modeItems.forEach((item, index) => {
       item.classList.remove('active', 'done');
-      if (index < persistent.modeIndex || (index === persistent.modeIndex && game.finished)) item.classList.add('done');
+      if (persistent.cycleProgress[index]) item.classList.add('done');
       if (index === persistent.modeIndex && !game.finished) item.classList.add('active');
     });
 
@@ -179,13 +319,14 @@
 
           if (char && !result) tile.classList.add('filled');
           if (result?.[col]) tile.classList.add(result[col]);
-          if (isCurrentRow && col === cursorPos && cursorPos < 5) tile.classList.add('active');
+          if (isCurrentRow && col === cursorPos) tile.classList.add('active');
 
           if (isCurrentRow) {
             tile.classList.add('editable');
             tile.addEventListener('click', () => {
               if (locked) return;
               cursorPos = col;
+              saveCurrentGame();
               renderBoards();
             });
           }
@@ -294,14 +435,17 @@
     if (key === 'ENTER') return submitGuess();
     if (key === 'ARROWLEFT') {
       cursorPos = (cursorPos + 4) % 5;
+      saveCurrentGame();
       return renderBoards();
     }
     if (key === 'ARROWRIGHT') {
       cursorPos = (cursorPos + 1) % 5;
+      saveCurrentGame();
       return renderBoards();
     }
     if (key === 'DELETE') {
       input[cursorPos] = '';
+      saveCurrentGame();
       return renderBoards();
     }
     if (key === 'BACKSPACE') {
@@ -311,12 +455,14 @@
         cursorPos--;
         input[cursorPos] = '';
       }
+      saveCurrentGame();
       return renderBoards();
     }
 
     if (/^[A-Z]$/.test(key)) {
       input[cursorPos] = key.toLowerCase();
-      cursorPos = (cursorPos + 1) % 5;
+      cursorPos = input.every(Boolean) ? 4 : (cursorPos + 1) % 5;
+      saveCurrentGame();
       renderBoards();
     }
   }
@@ -353,22 +499,23 @@
 
     input = Array(5).fill('');
     cursorPos = 0;
+    saveCurrentGame();
     renderBoards();
     renderSidebar();
     animateSubmittedRow(rowIndex);
     renderKeyboard();
-    await delay(1120);
+    await delay(900);
 
     if (game.solved.every(Boolean) || game.guesses.length >= game.mode.attempts) {
       finishGame();
     } else {
       locked = false;
+      saveCurrentGame();
     }
   }
 
   function animateSubmittedRow(rowIndex) {
-    boardsEl.querySelectorAll(`.row[data-row="${rowIndex}"] .tile`).forEach((tile, i) => {
-      tile.style.animationDelay = `${i * 105}ms`;
+    boardsEl.querySelectorAll(`.row[data-row="${rowIndex}"] .tile`).forEach(tile => {
       tile.classList.add('flip');
     });
   }
@@ -382,59 +529,49 @@
     });
   }
 
-  function calculatePoints() {
-    let gained = 0;
-    for (let i = 0; i < game.mode.boards; i++) {
-      if (!game.solved[i]) continue;
-      const attemptsLeft = game.mode.attempts - game.solvedAt[i];
-      gained += 100 + attemptsLeft * 25;
-    }
-    if (game.solved.every(Boolean)) gained += 100 * game.mode.multiplier;
-    return gained;
-  }
-
   function finishGame() {
     game.finished = true;
     locked = true;
     const perfect = game.solved.every(Boolean);
-    const solvedCount = game.solved.filter(Boolean).length;
-    const gained = calculatePoints();
 
-    persistent.score += gained;
-    persistent.games += 1;
-    persistent.boardsSolved += solvedCount;
+    if (!game.completionCounted) {
+      game.completionCounted = true;
+      persistent.phasesCompleted += 1;
+      persistent.cycleProgress[persistent.modeIndex] = true;
+      persistent.games = persistent.phasesCompleted;
+      persistent.boardsSolved += game.solved.filter(Boolean).length;
+      if (perfect) persistent.perfectRounds += 1;
 
-    if (perfect) {
-      persistent.streak += 1;
-      persistent.perfectRounds += 1;
-      persistent.bestStreak = Math.max(persistent.bestStreak, persistent.streak);
-    } else {
-      persistent.streak = 0;
+      if (persistent.cycleProgress.every(Boolean)) {
+        persistent.cycle += 1;
+        persistent.cycleProgress = [false, false, false, false];
+      }
+
+      persistent.recentSolutions = [...game.solutions, ...(persistent.recentSolutions || [])].slice(0, 40);
     }
 
-    persistent.recentSolutions = [...game.solutions, ...(persistent.recentSolutions || [])].slice(0, 40);
-    savePersistent();
+    saveCurrentGame();
     updateStatsBar();
     renderSidebar();
     renderBoards();
-    showResultModal(gained, perfect);
+    showResultModal(perfect);
   }
 
   function advanceMode() {
     if (!game?.finished) return;
-    const wasQuarteto = persistent.modeIndex === MODES.length - 1;
     persistent.modeIndex = (persistent.modeIndex + 1) % MODES.length;
-    if (wasQuarteto) persistent.cycle += 1;
+    persistent.currentGame = null;
     savePersistent();
     forceCloseModal();
-    newGame();
+    clearInlineResultArtifacts();
+    newGame(true);
   }
 
   function answerLetters(word) {
     return [...word.toUpperCase()].map(letter => `<span>${letter}</span>`).join('');
   }
 
-  function showResultModal(gained, perfect) {
+  function showResultModal(perfect) {
     modalTitleEl.textContent = perfect ? `${game.mode.name} concluído!` : `${game.mode.name} encerrado`;
     const nextMode = MODES[(persistent.modeIndex + 1) % MODES.length];
 
@@ -443,10 +580,7 @@
       const status = solved ? `Resolvida na ${game.solvedAt[index]}ª tentativa` : 'Essa era a palavra';
       return `
         <div class="answer-card ${solved ? 'solved-answer' : 'missed-answer'}">
-          <div class="answer-topline">
-            <span>${game.mode.boards > 1 ? `PALAVRA ${index + 1}` : 'A PALAVRA ERA'}</span>
-            <small>${status}</small>
-          </div>
+          <div class="answer-topline"><small>${status}</small></div>
           <div class="answer-word" aria-label="${solution.toUpperCase()}">${answerLetters(solution)}</div>
         </div>
       `;
@@ -454,14 +588,12 @@
 
     modalBodyEl.innerHTML = `
       <div class="result-solutions">${answers}</div>
-      <div class="result-score">
-        <span>Pontos nesta rodada</span>
-        <strong>+${gained}</strong>
-        <small>Total acumulado: ${persistent.score.toLocaleString('pt-BR')}</small>
+      <div class="result-progress-summary">
+        <span>Fases concluídas: <strong>${persistent.phasesCompleted}</strong></span>
+        <span>Ciclos completos: <strong>${persistent.cycle}</strong></span>
       </div>
       <button class="primary-btn" id="continueBtn">Jogar ${nextMode.name}</button>
       <button class="secondary-btn" id="shareBtn">Compartilhar resultado</button>
-      <p class="result-hint">Você pode fechar esta janela no ×. O botão para a próxima rodada também fica no painel lateral.</p>
     `;
 
     openModal();
@@ -476,7 +608,7 @@
     }).join('\n\n');
 
     const solved = game.solved.filter(Boolean).length;
-    const text = `TERMO ∞ • ${game.mode.name}\n${solved}/${game.mode.boards} • ${game.guesses.length}/${game.mode.attempts}\nPontos: ${persistent.score}\n\n${modeEmoji}`;
+    const text = `TERMU ∞ • ${game.mode.name}\n${solved}/${game.mode.boards} • ${game.guesses.length}/${game.mode.attempts}\nFases: ${persistent.phasesCompleted} • Ciclos: ${persistent.cycle}\n\n${modeEmoji}`;
 
     try {
       if (navigator.share) await navigator.share({ text });
@@ -496,36 +628,23 @@
         <div class="legend-row"><span class="legend-tile present">O</span><span>Letra existente, mas em outra posição.</span></div>
         <div class="legend-row"><span class="legend-tile absent">G</span><span>Letra que não faz parte da palavra.</span></div>
       </div>
-      <p><strong>Ciclo infinito:</strong> TERMO (6) → DUPLO (7) → TRIPLO (8) → QUARTETO (9) → TERMO...</p>
-      <p>Use ← e → para andar livremente pelas 5 casas, mesmo vazias. Também dá para clicar diretamente em qualquer casa e digitar nela.</p>
-      <p>A pontuação e a sequência ficam salvas neste navegador. Acentos não alteram as dicas.</p>
+      <p><strong>Ciclo:</strong> complete TERMO, DUPLO, TRIPLO e QUARTETO. Só então 1 ciclo é contado.</p>
+      <p>Sua fase atual, tentativas, palavras e letras digitadas ficam salvas neste navegador.</p>
     `;
     openModal();
   }
 
   function showStats() {
-    modalTitleEl.textContent = 'Estatísticas';
+    modalTitleEl.textContent = 'Progresso';
     modalBodyEl.innerHTML = `
       <div class="stats-grid">
-        <div class="stat"><strong>${persistent.score.toLocaleString('pt-BR')}</strong><span>pontos</span></div>
-        <div class="stat"><strong>${persistent.games}</strong><span>rodadas</span></div>
-        <div class="stat"><strong>${persistent.cycle}</strong><span>ciclo</span></div>
-        <div class="stat"><strong>${persistent.boardsSolved}</strong><span>palavras</span></div>
-        <div class="stat"><strong>${persistent.streak}</strong><span>sequência</span></div>
-        <div class="stat"><strong>${persistent.bestStreak}</strong><span>recorde</span></div>
+        <div class="stat"><strong>${persistent.phasesCompleted}</strong><span>fases concluídas</span></div>
+        <div class="stat"><strong>${persistent.cycle}</strong><span>ciclos completos</span></div>
       </div>
-      <p>Uma rodada perfeita é aquela em que você resolve todos os tabuleiros antes do limite de tentativas.</p>
-      <button class="secondary-btn danger-btn" id="resetBtn">Zerar progresso</button>
+      <button class="secondary-btn danger-btn" id="resetBtn">Zerar tudo</button>
     `;
     openModal();
-
-    document.getElementById('resetBtn').addEventListener('click', () => {
-      if (!confirm('Zerar pontos, estatísticas e voltar ao primeiro TERMO?')) return;
-      persistent = { ...defaultPersistent };
-      savePersistent();
-      forceCloseModal();
-      newGame();
-    });
+    document.getElementById('resetBtn').addEventListener('click', resetEverything);
   }
 
   function showMessage(text) {
@@ -578,7 +697,8 @@
   backdropEl.addEventListener('click', event => {
     if (event.target === backdropEl) forceCloseModal();
   });
+  window.addEventListener('pagehide', saveCurrentGame);
 
   if (solutionPool.length < 50) console.warn('Poucas palavras carregadas:', solutionPool.length);
-  newGame();
+  if (!restoreCurrentGame()) newGame(true);
 })();
