@@ -23,13 +23,19 @@
     window.TERMO_WORDS = window.TERMO_WORDS.filter(isAllowedSolution);
   }
 
-  // Se uma partida antiga salva ainda contiver um nome sorteado,
-  // ela é descartada para a próxima carga já nascer limpa.
+  // Limpa partidas antigas que tenham recebido uma resposta proibida.
+  // Se a fase já acabou, mantém o progresso e apenas aponta para a próxima fase.
   try {
     const key = 'termo-infinito-v1';
     const saved = JSON.parse(localStorage.getItem(key));
-    const solutions = saved?.currentGame?.solutions;
+    const currentGame = saved?.currentGame;
+    const solutions = currentGame?.solutions;
+
     if (Array.isArray(solutions) && solutions.some(word => !isAllowedSolution(word))) {
+      if (currentGame?.finished) {
+        const currentMode = Number.isInteger(saved.modeIndex) ? saved.modeIndex : 0;
+        saved.modeIndex = (currentMode + 1) % 4;
+      }
       saved.currentGame = null;
       localStorage.setItem(key, JSON.stringify(saved));
     }
