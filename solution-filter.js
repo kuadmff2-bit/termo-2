@@ -14,6 +14,16 @@
   // Respostas que até podem existir, mas não combinam com o catálogo comum do jogo.
   const bannedAnswers = new Set(['porno']);
 
+  // Palavras gramaticais/referenciais que continuam válidas como PALPITE,
+  // mas não devem ser sorteadas como resposta do jogo.
+  // Ex.: ESTES é correto em português, porém é pronome demonstrativo.
+  const grammaticalAnswers = new Set(`
+    estes estas esses essas
+    deste desta desse dessa
+    neste nesta nesse nessa
+    disso disto nisso nisto
+  `.trim().split(/\s+/).map(normalize));
+
   // O jogo pode aceitar flexões como PALPITE, mas não deve sorteá-las como resposta.
   // Para verbos, a resposta preferida é a forma direta no infinitivo:
   // falar, pegar, nadar, comer, partir, poder etc.
@@ -91,6 +101,7 @@
     return word.length === 5 &&
       !names.has(word) &&
       !bannedAnswers.has(word) &&
+      !grammaticalAnswers.has(word) &&
       !looksLikeConjugatedVerb(word);
   };
 
