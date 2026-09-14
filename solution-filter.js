@@ -23,6 +23,33 @@
     disso disto nisso nisto
   `.trim().split(/\s+/).map(normalize));
 
+  // O jogo deve preferir respostas no singular. Não basta bloquear toda palavra
+  // terminada em S, porque existem singulares válidos como LAPIS, TENIS e VIRUS.
+  // Aqui ficam plurais comuns/inequívocos de 5 letras que podem continuar válidos
+  // como PALPITE, mas não entram no sorteio.
+  const pluralAnswers = new Set(`
+    leoes acoes olhos vezes meses horas armas vidas caras fotos dados nomes
+    ratos gatos dedos casos luzes aulas ricos tipos bolas votos casas salas
+    ondas obras pneus copos lobos anjos ossos fatos malas altos novos novas
+    irmas ilhas unhas seios rosas botas lojas artes fitas damas fadas alvos
+    fogos vacas donos ursos vivas aneis taxas pesos pares trens ervas sinos
+    latas nozes joias veias doses tubos bolos cabos bases tacos patas civis
+    azuis meias raios tiras belas belos almas cores pecas notas erros doces
+    balas sacos rodas naves vozes aguas luvas molhos? palmas? gramas? 
+  `.trim().split(/\s+/).map(normalize).filter(word => /^[a-z]+$/.test(word)));
+
+  const looksLikePlural = (raw) => {
+    const word = normalize(raw);
+
+    if (pluralAnswers.has(word)) return true;
+
+    // Plurais em -ões de cinco letras são inequívocos para o catálogo atual:
+    // LEÕES, AÇÕES etc.
+    if (word.endsWith('oes')) return true;
+
+    return false;
+  };
+
   // O jogo pode aceitar flexões como PALPITE, mas não deve sorteá-las como resposta.
   // Para verbos, a resposta preferida é a forma direta no infinitivo:
   // falar, pegar, nadar, comer, partir, poder etc.
@@ -109,6 +136,7 @@
       !names.has(word) &&
       !bannedAnswers.has(word) &&
       !grammaticalAnswers.has(word) &&
+      !looksLikePlural(word) &&
       !looksLikeConjugatedVerb(word);
   };
 
