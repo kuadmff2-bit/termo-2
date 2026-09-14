@@ -6,7 +6,8 @@
   const validBR = Array.isArray(window.TERMO_VALID_BR) ? window.TERMO_VALID_BR : commonBR;
 
   // Palavras que queremos manter no conjunto de respostas.
-  const guaranteedSolutionsBR = [String.fromCharCode(102,117,122,105,108)];
+  // RAIAR é verbo no infinitivo e segue a regra atual das respostas do jogo.
+  const guaranteedSolutionsBR = [String.fromCharCode(102,117,122,105,108), 'raiar'];
 
   // Palavras válidas em português que podem ser usadas como palpite mesmo quando
   // a lista automática de frequência não as trouxe para TERMO_VALID_BR.
