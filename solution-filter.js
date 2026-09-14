@@ -16,7 +16,6 @@
 
   // Palavras gramaticais/referenciais que continuam válidas como PALPITE,
   // mas não devem ser sorteadas como resposta do jogo.
-  // Ex.: ESTES é correto em português, porém é pronome demonstrativo.
   const grammaticalAnswers = new Set(`
     estes estas esses essas
     deste desta desse dessa
@@ -27,7 +26,6 @@
   // O jogo pode aceitar flexões como PALPITE, mas não deve sorteá-las como resposta.
   // Para verbos, a resposta preferida é a forma direta no infinitivo:
   // falar, pegar, nadar, comer, partir, poder etc.
-  // Formas como "puder", "iriam", "falou", "sendo" etc. ficam fora.
   const conjugatedVerbAnswers = new Set(`
     estou vamos tenho disse quero posso estão temos tinha sabia seria venha tenha podem
     fique foram somos fosse achei deixe teria gosta havia houve devia sendo podia possa
@@ -41,7 +39,7 @@
     tomem vence valem jogam beija sirva envia viaja feriu temia lutei pariu verem ponho
     dando vindo sendo tendo lendo rindo pondo vendo iria serao terao farao darao dirao
     virao serei terei darei direi verei puder tiver fizer puser forem fossem foram houve
-    havia sejam sejam tenha tenha venha saiba possa facam digam oucam vejam olhem tragam
+    havia sejam tenha venha saiba possa facam digam oucam vejam olhem tragam
     ponha cubra finja sirva caiba valha saia saiam virem tirem parem falem levem subam
     corra morra durma minta grite chore cuide trate mande avise acabe perca pague prove
     andei mudei tirei tomei levei criei vendi errei notei lutei casei segui nasci perdi
@@ -49,7 +47,16 @@
     falou pegou ficou achou parou mudou criou pagou jogou virou casou tocou sacou notou
     pulou puxou armou durou errou jurou caiu saiu farão serão terão virão dirão darão
     sairá trará farei serei terei direi darei verei teria seria faria daria diria viria
-    veria iria iriam íamos fomos eram eram
+    veria iria iriam íamos fomos eram
+
+    soube coube valeu
+    morre corre dorme nasce segue serve
+    venho tenho posso quero dizem fazem devem sabem podem
+    gosto penso tento cuido mando chamo adoro odeio
+    custa resta basta passa volta chega falta sobra
+    vende perde ganha chama trata torna fecha corta
+    beija chora grita tenta sofre enche exige atrai
+    finge desce sobe
   `.trim().split(/\s+/).map(normalize));
 
   // Algumas palavras terminam como gerúndio sem serem verbos conjugados.
@@ -106,7 +113,6 @@
   };
 
   if (Array.isArray(window.TERMO_WORDS)) {
-    // Zera o cache antes de filtrar para ele enxergar o catálogo completo atual.
     delete looksLikeConjugatedVerb._solutions;
     window.TERMO_WORDS = window.TERMO_WORDS.filter(isAllowedSolution);
   }
