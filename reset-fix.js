@@ -1,46 +1,70 @@
 (() => {
   'use strict';
 
-  const RESET_PREFIXES = ['termo-', 'termu-'];
+  const PREFIXES = ['termo-', 'termu-'];
   const EXPLICIT_KEYS = [
     'termo-infinito-v1',
     'termo-progresso-correto-v1'
   ];
 
-  function clearTermoStorage(storage) {
+  function clearGameStorage(storage) {
     try {
+      // Primeiro remove as chaves conhecidas.
       EXPLICIT_KEYS.forEach(key => storage.removeItem(key));
 
+      // Depois remove qualquer estado antigo/auxiliar criado pelo TERMO 2.
       const keys = [];
       for (let i = 0; i < storage.length; i++) {
         const key = storage.key(i);
-        if (key && RESET_PREFIXES.some(prefix => key.toLowerCase().startsWith(prefix))) {
+        if (key && PREFIXES.some(prefix => key.toLowerCase().startsWith(prefix))) {
           keys.push(key);
         }
       }
       keys.forEach(key => storage.removeItem(key));
-    } catch (_) {
-      // Se o navegador bloquear algum storage, o restante do reset ainda continua.
-    }
+    } catch (_) { }
   }
 
-  function performReset() {
-    // Apaga todo o estado do jogo, inclusive progresso auxiliar e partida atual.
-    clearTermoStorage(localStorage);
-    clearTermoStorage(sessionStorage);
+  function hardReset() {
+    // Sinaliza para qualquer código que ainda rode neste frame não salvar nada de volta.
+    window.__TERMO_HARD_RESET__ = true;
 
-    // Reabre o jogo do começo e evita reaproveitar uma página antiga em cache.
-    const cleanUrl = `${location.pathname}?reset=${Date.now()}`;
-    location.replace(cleanUrl);
+    clearGameStorage(localStorage);
+    clearGameStorage(sessionStorage);
+
+    // Confere uma segunda vez antes de sair da página.
+    EXPLICIT_KEYS.forEach(key => {
+      try { localStorage.removeItem(key); } catch (_) { }
+      try { sessionStorage.removeItem(key); } catch (_) { }
+    });
+
+    // O parâmetro novo força uma navegação limpa e evita reaproveitar documento em cache.
+    const url = new URL(location.href);
+    url.search = '';
+    url.hash = '';
+    url.searchParams.set('reset', String(Date.now()));
+    location.replace(url.toString());
   }
 
-  document.addEventListener('click', event => {
-    const button = event.target.closest('#sideResetAll, #resetBtn');
+  function interceptReset(event) {
+    const target = event.target instanceof Element ? event.target : null;
+    const button = target?.closest('#sideResetAll, #resetBtn');
     if (!button) return;
 
+    // Capturado no WINDOW: roda antes dos listeners do document e do botão.
     event.preventDefault();
     event.stopPropagation();
     event.stopImmediatePropagation();
-    performReset();
+
+    hardReset();
+  }
+
+  // Window + capture garante prioridade sobre app.js e strict-progress.js.
+  window.addEventListener('click', interceptReset, true);
+
+  // Evita que algum salvamento tardio volte a gravar progresso durante a navegação.
+  window.addEventListener('pagehide', () => {
+    if (!window.__TERMO_HARD_RESET__) return;
+    clearGameStorage(localStorage);
+    clearGameStorage(sessionStorage);
   }, true);
 })();
