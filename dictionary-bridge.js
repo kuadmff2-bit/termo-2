@@ -4,7 +4,13 @@
   const local = Array.isArray(window.TERMO_WORDS) ? window.TERMO_WORDS : [];
   const commonBR = Array.isArray(window.TERMO_COMMON_BR) ? window.TERMO_COMMON_BR : local;
   const validBR = Array.isArray(window.TERMO_VALID_BR) ? window.TERMO_VALID_BR : commonBR;
-  const guaranteedCommonBR = [String.fromCharCode(102,117,122,105,108)];
+
+  // Palavras que queremos manter no conjunto de respostas.
+  const guaranteedSolutionsBR = [String.fromCharCode(102,117,122,105,108)];
+
+  // Palavras válidas em português que podem ser usadas como palpite mesmo quando
+  // a lista automática de frequência não as trouxe para TERMO_VALID_BR.
+  const guaranteedGuessesBR = ['finta'];
 
   const mergeUnique = (list) => {
     const seen = new Set();
@@ -18,8 +24,12 @@
     return result;
   };
 
-  const solutions = mergeUnique([...commonBR, ...guaranteedCommonBR]);
-  const validWords = mergeUnique([...validBR, ...guaranteedCommonBR]);
+  const solutions = mergeUnique([...commonBR, ...guaranteedSolutionsBR]);
+  const validWords = mergeUnique([
+    ...validBR,
+    ...guaranteedSolutionsBR,
+    ...guaranteedGuessesBR
+  ]);
 
   window.TERMO_WORDS = solutions;
   window.TERMO_VALID_WORDS = validWords;
